@@ -40,15 +40,23 @@ The experimental datasets used to generate and validate the results reported in 
 2. Open the file in a web browser.
 3. Select **PEEK** or **TPU**.
 4. Upload the reference and evaluated datasets for FTIR, TGA and DSC.
-5. Review or modify the analysis parameters and qualification thresholds if required.
-6. Click **Run evaluation**.
-7. Review the calculated descriptors, plots and final qualification outcome.
+5. For **FTIR**, review or modify the spectral ranges used for descriptor calculation.
+6. For **DSC**, review or modify the temperature ranges used to evaluate the relevant thermal transitions.
+7. Review or modify the qualification thresholds if required.
+8. Click **Run evaluation**.
+9. Review the calculated descriptors, relative variations, plots and final qualification outcome.
 
 Experimental files are processed locally in the user's browser and are not uploaded to an external server.
 
 ## Contact
 
-For questions regarding the application, please contact: csolek@ind.uned.es
+For questions regarding the application, please contact:
+
+**Claudia Solek**  
+Department of Manufacturing Engineering  
+Universidad Nacional de Educación a Distancia (UNED)  
+Madrid, Spain  
+Email: csolek@ind.uned.es
 
 ## License
 
