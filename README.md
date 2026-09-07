@@ -50,13 +50,7 @@ Experimental files are processed locally in the user's browser and are not uploa
 
 ## Contact
 
-For questions regarding the application, please contact:
-
-**Claudia Solek**  
-Department of Manufacturing Engineering  
-Universidad Nacional de Educación a Distancia (UNED)  
-Madrid, Spain  
-Email: csolek@ind.uned.es
+For questions regarding the application, please contact: csolek@ind.uned.es
 
 ## License
 
