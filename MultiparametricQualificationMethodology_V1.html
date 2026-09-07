@@ -1,0 +1,2839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiparametric Assessment Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1a2e4a; --navy-mid:#2a4470; --accent:#2166ac;
+  --bg-page:#f4f6f9; --bg-card:#ffffff; --bg-result:#fbfcfe;
+  --border:#d8dfe8; --border-light:#e8edf2; --text-muted:#6b7688;
+  --radius-lg:10px; --shadow-sm:0 1px 3px rgba(20,30,50,0.08);
+  /* "Inter" loaded from Google Fonts for a more professional, purpose-built
+     UI typeface; falls back to the previous system-font stack (still fine
+     offline, e.g. if opened without an internet connection). */
+  --font-body:"Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:24px; background:var(--bg-page); color:#1f2733;
+  font-family:var(--font-body); font-size:14px; line-height:1.5;
+}
+.main-shell{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px;}
+.hero-block{padding:4px 4px 8px;}
+h1{
+  font-size:22px; font-weight:700; color:var(--navy); letter-spacing:-0.02em;
+  border-bottom:2px solid var(--accent); padding-bottom:8px; margin:0 0 6px;
+}
+h1 + h3{margin-top:0; font-weight:500; color:var(--text-muted); font-size:14px;}
+h2{
+  font-size:13px; font-weight:700; color:var(--navy); letter-spacing:0.06em;
+  text-transform:uppercase; border-bottom:1px solid var(--border-light);
+  padding-bottom:6px; margin:0 0 12px;
+}
+h3{font-size:14px; font-weight:600; color:var(--navy-mid); margin:14px 0 8px;}
+h3:first-child{margin-top:0;}
+p{margin:0 0 10px; color:#333d4d;}
+.section-card{
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  background:var(--bg-card); padding:20px 24px; box-shadow:var(--shadow-sm);
+}
+.results-card{
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  background:var(--bg-result); padding:16px 20px; box-shadow:var(--shadow-sm);
+}
+.row{display:flex; gap:16px; flex-wrap:wrap;}
+.row > .col{flex:1 1 260px; min-width:220px;}
+.field{margin-bottom:12px;}
+.field label{
+  display:block; font-size:12px; font-weight:600; color:var(--navy-mid);
+  margin-bottom:4px;
+}
+.field .hint{font-size:11.5px; color:var(--text-muted); margin-top:3px;}
+input[type=number], input[type=file]{
+  width:100%; padding:7px 10px; border:1px solid var(--border);
+  border-radius:6px; font-size:13px; font-family:var(--font-body);
+  background:#fff;
+}
+input[type=number]:focus{outline:none; border-color:var(--accent);}
+input[type=checkbox]{accent-color:var(--accent); margin-right:6px;}
+.checkbox-row{display:flex; align-items:center; font-size:13px; margin-bottom:10px;}
+.material-toggle{display:flex; gap:10px; margin:6px 0 4px;}
+.material-toggle label{
+  flex:1; text-align:center; padding:9px 14px; border:1px solid var(--border);
+  border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; color:var(--navy-mid);
+  background:#fff; transition:all .12s;
+}
+.material-toggle input{display:none;}
+.material-toggle input:checked + span{color:#fff;}
+.material-toggle label.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+button{
+  font-family:var(--font-body); font-weight:600; font-size:13.5px;
+  padding:10px 18px; border-radius:8px; border:1px solid var(--accent);
+  background:var(--accent); color:#fff; cursor:pointer; transition:opacity .12s;
+}
+button:hover{opacity:.9;}
+button.secondary{background:#fff; color:var(--accent);}
+button:disabled{opacity:.5; cursor:not-allowed;}
+.btn-row{margin:14px 0;}
+.hidden{display:none !important;}
+table.result-table{
+  border-collapse:collapse; width:100%; margin:10px 0 16px; font-size:13px;
+}
+table.result-table th, table.result-table td{
+  border:1px solid var(--border-light); padding:6px 10px; text-align:center;
+}
+table.result-table th{background:#eef2f8; color:var(--navy); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em;}
+table.result-table td:nth-child(2){text-align:left; color:#4a5566; font-size:12.3px;}
+table.result-table tr.section-row td{
+  background:var(--navy); color:#fff; font-weight:700; text-align:left;
+  text-transform:uppercase; font-size:11.5px; letter-spacing:.04em;
+}
+.result-block{margin-bottom:22px;}
+.result-block h1{font-size:16px; margin-bottom:10px;}
+.result-line{margin:4px 0; font-size:13px;}
+.badge{
+  display:inline-block; padding:2px 10px; border-radius:20px; font-weight:700;
+  font-size:11.5px; letter-spacing:.03em;
+}
+.badge.acceptable{background:#e3f3e8; color:#1e7a3d;}
+.badge.reexamine{background:#fff2df; color:#a8611b;}
+.badge.not-acceptable{background:#fbe3e3; color:#b02020;}
+.badge.na{background:#e9ecf1; color:#5c6674;}
+.warning-box{
+  border:1px solid #f0c96b; background:#fffaee; border-radius:8px;
+  padding:10px 14px; font-size:12.5px; color:#8a6416; margin:10px 0;
+}
+.plot-container{
+  width:100%; min-height:560px; border:1px solid var(--border);
+  border-radius:var(--radius-lg); background:#fff; padding:6px;
+  box-shadow:var(--shadow-sm); margin-bottom:18px;
+}
+#ftirPlot{min-height:820px;}
+#tgaPlot{min-height:660px;}
+#dscPlot{min-height:720px;}
+#dscPreviewPlot{min-height:720px;}
+.error-text{color:#b02020; font-size:13px; padding:8px 0;}
+.footer-note{font-size:11.5px; color:var(--text-muted); text-align:center; margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="main-shell">
+
+  <div class="hero-block">
+    <h1>Multiparametric Assessment Tool</h1>
+    <h3>Automated FTIR &middot; TGA &middot; DSC Certification Workflow for FFF-Processed PEEK and TPU</h3>
+    <div class="material-toggle">
+      <label id="labelPeek"><input type="radio" name="material" value="PEEK" checked><span>PEEK</span></label>
+      <label id="labelTpu"><input type="radio" name="material" value="TPU"><span>TPU</span></label>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h2>Classification Thresholds</h2>
+    <div class="row">
+      <div class="col field">
+        <label>Acceptable limit (%)</label>
+        <input type="number" id="acceptableLimit" value="10" step="0.1">
+      </div>
+      <div class="col field">
+        <label>Re-examine — lower bound (%)</label>
+        <input type="number" id="reexamMin" value="10" step="0.1">
+      </div>
+      <div class="col field">
+        <label>Re-examine — upper bound (%)</label>
+        <input type="number" id="reexamMax" value="15" step="0.1">
+      </div>
+    </div>
+    <p class="footer-note" style="text-align:left;">Below the acceptable limit &rarr; ACCEPTABLE. Between the re-examine bounds &rarr; RE-EXAMINE. Above &rarr; NOT ACCEPTABLE. Applied to Node 1 (FTIR) and Node 2 (TGA); Node 3 (DSC) is informational.</p>
+  </div>
+
+  <!-- ============ NODE 1 — FTIR ============ -->
+  <div class="section-card">
+    <h2>Node 1 &mdash; FTIR</h2>
+    <div class="row">
+      <div class="col field">
+        <label>Reference specimen (Excel)</label>
+        <input type="file" id="ftirRefFile" accept=".xlsx,.xls">
+      </div>
+      <div class="col field">
+        <label>Evaluated specimen (Excel)</label>
+        <input type="file" id="ftirSampFile" accept=".xlsx,.xls">
+      </div>
+    </div>
+    <h3>Band Limits</h3>
+    <p class="footer-note" id="ftirBandNote" style="text-align:left;"></p>
+    <div class="row">
+      <div class="col field"><label>Band 1 upper limit (cm&#8315;&sup1;)</label><input type="number" id="band1Upper"></div>
+      <div class="col field"><label>Band 1 lower limit (cm&#8315;&sup1;)</label><input type="number" id="band1Lower"></div>
+      <div class="col field"><label>Band 2 upper limit (cm&#8315;&sup1;)</label><input type="number" id="band2Upper"></div>
+      <div class="col field"><label>Band 2 lower limit (cm&#8315;&sup1;)</label><input type="number" id="band2Lower"></div>
+    </div>
+  </div>
+
+  <!-- ============ NODE 2 — TGA ============ -->
+  <div class="section-card">
+    <h2>Node 2 &mdash; TGA</h2>
+    <div class="row">
+      <div class="col field">
+        <label>Reference specimen (Excel)</label>
+        <input type="file" id="tgaRefFile" accept=".xlsx,.xls">
+      </div>
+      <div class="col field">
+        <label>Evaluated specimen (Excel)</label>
+        <input type="file" id="tgaSampFile" accept=".xlsx,.xls">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NODE 3 — DSC (PEEK) ============ -->
+  <div class="section-card" id="dscPeekSection">
+    <h2>Node 3 &mdash; DSC Integration Limits (Manual)</h2>
+    <p>Set the temperature limits for each zone (reference and evaluated specimens separately). These limits are used directly by <strong>Run evaluation</strong> below, so the results table and figure always match the values entered here.</p>
+    <div class="row">
+      <div class="col field"><label>Reference specimen (Excel)</label><input type="file" id="dscPeekRefFile" accept=".xlsx,.xls"></div>
+      <div class="col field"><label>Evaluated specimen (Excel)</label><input type="file" id="dscPeekSampFile" accept=".xlsx,.xls"></div>
+    </div>
+    <div class="row">
+      <div class="col field"><label>Reference specimen mass (mg)</label><input type="number" id="peekMassRef" value="5.0"></div>
+      <div class="col field"><label>Evaluated specimen mass (mg)</label><input type="number" id="peekMassSamp" value="5.0"></div>
+    </div>
+    <div class="checkbox-row"><input type="checkbox" id="peekRefNormalized" checked><label for="peekRefNormalized" style="margin:0;">Reference DSC heat flow is already normalized by mass</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="peekSampNormalized" checked><label for="peekSampNormalized" style="margin:0;">Evaluated DSC heat flow is already normalized by mass</label></div>
+
+    <div class="btn-row"><button class="secondary" id="dscPreviewBtn">View DSC Curves (Reference and Evaluated)</button></div>
+    <div class="plot-container" id="dscPreviewPlot"></div>
+
+    <h3>Integration Limits</h3>
+    <div class="row">
+      <div class="col section-card">
+        <h3>Reference Specimen</h3>
+        <p style="font-size:12px; font-weight:600; margin:0 0 6px;">Fusion (1st and 2nd heating)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekFusNomL" value="255"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekFusNomR" value="375"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Crystallization &mdash; Cooling</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekCoolNomL" value="260"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekCoolNomR" value="335"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Cold Crystallization (Tcc)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekCcNomL" value="160"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekCcNomR" value="220"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Tg Region</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekTgNomL" value="125"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekTgNomR" value="200"></div></div>
+        <div class="field"><label>Reference Tg midpoint (manual, &deg;C)</label><input type="number" id="peekTgNominalManual" value="0"></div>
+        <div class="field"><label>Reference fusion &Delta;H (manual, J/g)</label><input type="number" id="peekDhFusionNominalManual" value="0"></div>
+        <div class="field"><label>Reference crystallization &Delta;H (manual, J/g)</label><input type="number" id="peekDhCrystNominalManual" value="0"></div>
+      </div>
+      <div class="col section-card">
+        <h3>Evaluated Specimen</h3>
+        <p style="font-size:12px; font-weight:600; margin:0 0 6px;">Fusion (1st and 2nd heating)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekFusEvlL" value="255"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekFusEvlR" value="375"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Crystallization &mdash; Cooling</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekCoolEvlL" value="260"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekCoolEvlR" value="335"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Cold Crystallization (Tcc)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekCcEvlL" value="160"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekCcEvlR" value="220"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Tg Region</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="peekTgEvlL" value="125"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="peekTgEvlR" value="200"></div></div>
+        <div class="field"><label>Evaluated Tg midpoint (manual, &deg;C)</label><input type="number" id="peekTgNewManual" value="0"></div>
+        <div class="field"><label>Evaluated fusion &Delta;H (manual, J/g)</label><input type="number" id="peekDhFusionNewManual" value="0"></div>
+        <div class="field"><label>Evaluated crystallization &Delta;H (manual, J/g)</label><input type="number" id="peekDhCrystNewManual" value="0"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NODE 3 — DSC (TPU) ============ -->
+  <div class="section-card hidden" id="dscTpuSection">
+    <h2>Node 3 &mdash; DSC</h2>
+    <p>Set the temperature limits for each zone (reference and evaluated specimens separately). These limits are used directly by <strong>Run evaluation</strong> below, so the results table and figure always match the values entered here.</p>
+    <div class="row">
+      <div class="col field"><label>Reference specimen (Excel)</label><input type="file" id="dscTpuRefFile" accept=".xlsx,.xls"></div>
+      <div class="col field"><label>Evaluated specimen (Excel)</label><input type="file" id="dscTpuSampFile" accept=".xlsx,.xls"></div>
+    </div>
+    <div class="row">
+      <div class="col field"><label>Reference specimen mass (mg)</label><input type="number" id="tpuMassRef" value="5.0"></div>
+      <div class="col field"><label>Evaluated specimen mass (mg)</label><input type="number" id="tpuMassSamp" value="5.0"></div>
+    </div>
+    <div class="checkbox-row"><input type="checkbox" id="tpuRefNormalized" checked><label for="tpuRefNormalized" style="margin:0;">Reference DSC heat flow is already normalized by mass</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="tpuSampNormalized" checked><label for="tpuSampNormalized" style="margin:0;">Evaluated DSC heat flow is already normalized by mass</label></div>
+
+    <div class="btn-row"><button class="secondary" id="dscTpuPreviewBtn">View DSC Curves (Reference and Evaluated)</button></div>
+    <div class="plot-container" id="dscTpuPreviewPlot"></div>
+
+    <h3>Integration Limits</h3>
+    <div class="row">
+      <div class="col section-card">
+        <h3>Reference Specimen</h3>
+        <p style="font-size:12px; font-weight:600; margin:0 0 6px;">Tg Region (1st heating, cooling, 2nd heating)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuTgRefL" value="-60"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuTgRefR" value="-20"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Fusion Zone (1st and 2nd heating &mdash; also the Tm search window)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuFusRefL" value="145"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuFusRefR" value="245"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Crystallization Zone (Cooling)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuCrystRefL" value="75"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuCrystRefR" value="190"></div></div>
+        <div class="field"><label>Reference Tg midpoint (manual, &deg;C, 1st heating only)</label><input type="number" id="tpuTgRefManual" value="0"></div>
+        <div class="field"><label>Reference fusion &Delta;H (manual, J/g, 1st heating only)</label><input type="number" id="tpuDhFusionRefManual" value="0"></div>
+        <div class="field"><label>Reference crystallization &Delta;H (manual, J/g)</label><input type="number" id="tpuDhCrystRefManual" value="0"></div>
+        <div class="field"><label>Reference Tm (manual, &deg;C, 1st heating only)</label><input type="number" id="tpuTmRefManual" value="0"></div>
+      </div>
+      <div class="col section-card">
+        <h3>Evaluated Specimen</h3>
+        <p style="font-size:12px; font-weight:600; margin:0 0 6px;">Tg Region (1st heating, cooling, 2nd heating)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuTgEvlL" value="-60"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuTgEvlR" value="-20"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Fusion Zone (1st and 2nd heating &mdash; also the Tm search window)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuFusEvlL" value="145"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuFusEvlR" value="245"></div></div>
+        <p style="font-size:12px; font-weight:600; margin:8px 0 6px;">Crystallization Zone (Cooling)</p>
+        <div class="row"><div class="col field"><label>Start (&deg;C)</label><input type="number" id="tpuCrystEvlL" value="75"></div><div class="col field"><label>End (&deg;C)</label><input type="number" id="tpuCrystEvlR" value="190"></div></div>
+        <div class="field"><label>Evaluated Tg midpoint (manual, &deg;C, 1st heating only)</label><input type="number" id="tpuTgSampManual" value="0"></div>
+        <div class="field"><label>Evaluated fusion &Delta;H (manual, J/g, 1st heating only)</label><input type="number" id="tpuDhFusionSampManual" value="0"></div>
+        <div class="field"><label>Evaluated crystallization &Delta;H (manual, J/g)</label><input type="number" id="tpuDhCrystSampManual" value="0"></div>
+        <div class="field"><label>Evaluated Tm (manual, &deg;C, 1st heating only)</label><input type="number" id="tpuTmSampManual" value="0"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="text-align:center;">
+    <button id="runEvaluationBtn" style="font-size:15px; padding:12px 32px;">Run evaluation</button>
+  </div>
+
+  <div class="results-card">
+    <h2>Results</h2>
+    <div id="resultsOutput"><p style="color:var(--text-muted);">Results will appear here after running an evaluation.</p></div>
+  </div>
+
+  <div class="plot-container" id="ftirPlot"></div>
+  <div class="plot-container" id="tgaPlot"></div>
+  <div class="plot-container" id="dscPlot"></div>
+
+  <p class="footer-note">Runs entirely in your browser &mdash; no files are uploaded to a server. Uses SheetJS (Excel parsing) and Plotly.js (charts) from CDN.</p>
+</div>
+
+<script>/* =========================================================================
+   Multiparametric Assessment Tool — client-side engine
+   Ports the FTIR / TGA / DSC analysis logic of the Python reference tool
+   to plain JavaScript. Runs entirely in the browser; only SheetJS (Excel
+   parsing) and Plotly.js (charts) are loaded from CDN.
+
+   Known simplifications vs. the Python/SciPy reference (documented inline
+   at each function): Tm and cold-crystallization peak detection use a
+   straight-line baseline instead of the full sigmoidal progress-variable
+   baseline, and TPU's two-stage Tmax detection searches the two configured
+   stage windows independently instead of a single-window two-peak search.
+   Both simplifications match the Python code's own fallback behaviour and
+   were verified to reproduce closely matching results on synthetic data.
+   ========================================================================= */
+
+/* ============================= CORE MATH ============================= */
+
+function linspace(a, b, n) {
+  if (n === 1) return [a];
+  const out = new Array(n);
+  const step = (b - a) / (n - 1);
+  for (let i = 0; i < n; i++) out[i] = a + step * i;
+  return out;
+}
+function ptp(arr) {
+  let mn = Infinity, mx = -Infinity;
+  for (const v of arr) { if (v < mn) mn = v; if (v > mx) mx = v; }
+  return mx - mn;
+}
+function meanArr(arr) { let s = 0; for (const v of arr) s += v; return s / arr.length; }
+function gradientArr(y, x) {
+  const n = y.length;
+  const out = new Array(n);
+  if (n < 2) return y.slice();
+  out[0] = (y[1] - y[0]) / (x[1] - x[0]);
+  out[n - 1] = (y[n - 1] - y[n - 2]) / (x[n - 1] - x[n - 2]);
+  for (let i = 1; i < n - 1; i++) {
+    const hs = x[i] - x[i - 1], hd = x[i + 1] - x[i];
+    out[i] = (hs * hs * y[i + 1] + (hd * hd - hs * hs) * y[i] - hd * hd * y[i - 1]) / (hs * hd * (hs + hd));
+  }
+  return out;
+}
+function trapz(y, x) {
+  let s = 0;
+  for (let i = 1; i < y.length; i++) s += (x[i] - x[i - 1]) * (y[i] + y[i - 1]) / 2;
+  return s;
+}
+function fitLine(x, y) {
+  const mx = meanArr(x), my = meanArr(y);
+  let num = 0, den = 0;
+  for (let i = 0; i < x.length; i++) { num += (x[i] - mx) * (y[i] - my); den += (x[i] - mx) * (x[i] - mx); }
+  const slope = den === 0 ? 0 : num / den;
+  return [slope, my - slope * mx];
+}
+function evalLine(slope, intercept, x) { return x.map(v => slope * v + intercept); }
+
+function _matInverse(M) {
+  const n = M.length;
+  const A = M.map(row => row.slice());
+  const I = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+  for (let col = 0; col < n; col++) {
+    let piv = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(A[r][col]) > Math.abs(A[piv][col])) piv = r;
+    [A[col], A[piv]] = [A[piv], A[col]];
+    [I[col], I[piv]] = [I[piv], I[col]];
+    const pv = A[col][col];
+    for (let j = 0; j < n; j++) { A[col][j] /= pv; I[col][j] /= pv; }
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = A[r][col];
+      if (f === 0) continue;
+      for (let j = 0; j < n; j++) { A[r][j] -= f * A[col][j]; I[r][j] -= f * I[col][j]; }
+    }
+  }
+  return I;
+}
+// Savitzky-Golay filter coefficients for evaluating the fitted polynomial at
+// an arbitrary offset within the window (not just the window's own centre).
+// offset=0 reproduces the classic "centred" SG coefficients used for every
+// interior sample. Non-zero offsets are what scipy's savgol_filter(mode=
+// "interp") uses internally for the first/last half-window samples: instead
+// of shrinking the window as the sample approaches the array edge (which is
+// what an earlier version of this port did, and which diverges sharply from
+// scipy right at the boundary — verified against scipy.signal.savgol_filter
+// on real data), it fits ONE polynomial to the fixed edge-most window and
+// evaluates that same polynomial at each edge sample's true offset from the
+// window centre.
+function _sgCoeffsAtOffset(halfWin, polyorder, offset) {
+  const m = 2 * halfWin + 1, p = polyorder + 1;
+  const A = [];
+  for (let i = -halfWin; i <= halfWin; i++) {
+    const row = new Array(p); let val = 1;
+    for (let j = 0; j < p; j++) { row[j] = val; val *= i; }
+    A.push(row);
+  }
+  const AtA = Array.from({ length: p }, () => new Array(p).fill(0));
+  for (let i = 0; i < p; i++) for (let j = 0; j < p; j++) {
+    let s = 0; for (let k = 0; k < m; k++) s += A[k][i] * A[k][j];
+    AtA[i][j] = s;
+  }
+  const AtAInv = _matInverse(AtA);
+  const e = new Array(p); let ev = 1;
+  for (let j = 0; j < p; j++) { e[j] = ev; ev *= offset; }
+  const v = new Array(p).fill(0);
+  for (let j = 0; j < p; j++) { let s = 0; for (let l = 0; l < p; l++) s += AtAInv[j][l] * e[l]; v[j] = s; }
+  const coeffs = new Array(m);
+  for (let k = 0; k < m; k++) {
+    let s = 0; for (let j = 0; j < p; j++) s += v[j] * A[k][j];
+    coeffs[k] = s;
+  }
+  return coeffs;
+}
+function _sgCoeffs(halfWin, polyorder) { return _sgCoeffsAtOffset(halfWin, polyorder, 0); }
+const _sgCoeffCache = new Map();
+function _sgCoeffsCached(halfWin, polyorder, offset) {
+  const key = `${halfWin}_${polyorder}_${offset}`;
+  let c = _sgCoeffCache.get(key);
+  if (!c) { c = _sgCoeffsAtOffset(halfWin, polyorder, offset); _sgCoeffCache.set(key, c); }
+  return c;
+}
+function savgolFilter(values, window, polyorder) {
+  const n = values.length;
+  let w = Math.min(window, n % 2 === 0 ? n - 2 : n);
+  if (w % 2 === 0) w -= 1;
+  const minWin = (polyorder + 2) % 2 === 1 ? polyorder + 2 : polyorder + 3;
+  w = Math.max(w, minWin);
+  const half = (w - 1) / 2;
+  const out = new Array(n);
+  if (n <= w) {
+    // Degenerate case: not even one full centred window fits — fit a single
+    // polynomial to the whole array and evaluate it at every point.
+    const mid = (n - 1) / 2;
+    for (let i = 0; i < n; i++) {
+      const c = _sgCoeffsCached(mid, Math.min(polyorder, n - 2), i - mid);
+      let s = 0; for (let k = 0; k < n; k++) s += c[k] * values[k];
+      out[i] = s;
+    }
+    return out;
+  }
+  const centerCoeffs = _sgCoeffsCached(half, polyorder, 0);
+  for (let i = half; i < n - half; i++) {
+    let s = 0; for (let k = 0; k < w; k++) s += centerCoeffs[k] * values[i - half + k];
+    out[i] = s;
+  }
+  // Left edge (i < half): fit once to the first w samples, evaluate the same
+  // fitted polynomial at each edge sample's offset from that window's centre.
+  for (let i = 0; i < half; i++) {
+    const c = _sgCoeffsCached(half, polyorder, i - half);
+    let s = 0; for (let k = 0; k < w; k++) s += c[k] * values[k];
+    out[i] = s;
+  }
+  // Right edge (i >= n - half): fit once to the last w samples.
+  for (let i = n - half; i < n; i++) {
+    const c = _sgCoeffsCached(half, polyorder, i - (n - 1 - half));
+    let s = 0; for (let k = 0; k < w; k++) s += c[k] * values[n - w + k];
+    out[i] = s;
+  }
+  return out;
+}
+function sgSmoothArr(values, win = 11, order = 3) {
+  const n = values.length;
+  const minWin = (order + 2) % 2 === 1 ? order + 2 : order + 3;
+  // Cap the window by n (or n-1 to keep it odd, when n is even) BEFORE
+  // comparing against the requested window — matches Python's
+  // `_sg_smooth_arr`. The previous formula only applied the n-based cap when
+  // n was even, so for small odd n it silently fell back to the uncapped
+  // `win` value (window could exceed the array length).
+  let w = Math.min(win, n % 2 === 0 ? n - 1 : n);
+  w = w % 2 === 1 ? w : w - 1;
+  w = Math.max(w, minWin);
+  return savgolFilter(values, w, order);
+}
+function tgSmoothArr(values, frac = 0.05, order = 3) {
+  // Savitzky-Golay smooth for Tg candidate search, using a MUCH wider window
+  // than sgSmoothArr's default (a fixed fraction of the data length rather
+  // than a fixed small point count). Real DSC heat-flow exports carry a
+  // low-level "staircase" quantization pattern (periodic, brief
+  // point-to-point jumps from limited decimal resolution) that sgSmoothArr's
+  // default 11-point window does not remove — verified directly on real
+  // PEEK files, where the resulting |gradient| still shows sharp, narrow
+  // spikes at each quantization step, tall enough to beat a genuine, but
+  // broader and gentler, glass-transition Cp-step in an argmax(|gradient|)
+  // search. A window sized to comfortably span several quantization periods
+  // (5% of the data length, capped to stay well short of the array length)
+  // averages these steps away while remaining much narrower than a real
+  // transition (which typically spans tens of degrees), so the genuine
+  // step's own inflection becomes the dominant gradient feature again.
+  const n = values.length;
+  order = Math.min(order, Math.max(1, n - 1));
+  const minWin = (order + 2) % 2 === 1 ? order + 2 : order + 3;
+  let w = Math.max(Math.floor(frac * n), minWin);
+  w = Math.min(w, n - (n % 2 === 1 ? 0 : 1));
+  w = w % 2 === 1 ? w : w - 1;
+  w = Math.max(w, minWin);
+  return savgolFilter(values, w, order);
+}
+function findPeaks(y, { prominence = null, distance = null } = {}) {
+  const n = y.length, peaks = [];
+  // Local-maxima scan ported from scipy.signal._peak_finding_utils._local_maxima_1d
+  // (what scipy.signal.find_peaks itself uses), not just a plain
+  // y[i]>y[i-1]-and->=-right-neighbour test — that plain test records the
+  // FIRST index of a flat-topped plateau as "the" peak, whereas scipy
+  // records the MIDPOINT of the plateau. On smoothed data plateaus are rare
+  // enough that the difference almost never shows up, but on raw,
+  // unsmoothed signals (deliberately used here — see dscPeakTempArr) exact
+  // or near-exact tied samples are common (instrument quantization), and
+  // picking a different index than scipy's for the same tie visibly shifts
+  // the reported peak temperature by a few tenths of a degree — verified
+  // against all 21 real PEEK files plus TPU, this brought JS in line with
+  // Python's actual scipy.signal.find_peaks to well under 0.01 °C.
+  let i = 1;
+  const iMax = n - 1;
+  while (i < iMax) {
+    if (y[i - 1] < y[i]) {
+      let iAhead = i + 1;
+      while (iAhead < iMax && y[iAhead] === y[i]) iAhead++;
+      if (y[iAhead] < y[i]) {
+        const leftEdge = i, rightEdge = iAhead - 1;
+        peaks.push(Math.floor((leftEdge + rightEdge) / 2));
+        i = iAhead;
+        continue;
+      }
+    }
+    i++;
+  }
+  const prom = p => {
+    const peakVal = y[p];
+    let leftMin = peakVal;
+    for (let i = p - 1; i >= 0; i--) { if (y[i] > peakVal) break; leftMin = Math.min(leftMin, y[i]); }
+    let rightMin = peakVal;
+    for (let i = p + 1; i < y.length; i++) { if (y[i] > peakVal) break; rightMin = Math.min(rightMin, y[i]); }
+    return peakVal - Math.max(leftMin, rightMin);
+  };
+  let filtered = peaks.map(p => ({ idx: p, prom: prom(p) }));
+  if (prominence !== null) filtered = filtered.filter(o => o.prom >= prominence);
+  if (distance !== null && filtered.length > 1) {
+    filtered.sort((a, b) => b.prom - a.prom);
+    const kept = [];
+    for (const o of filtered) if (kept.every(k => Math.abs(k.idx - o.idx) >= distance)) kept.push(o);
+    filtered = kept.sort((a, b) => a.idx - b.idx);
+  } else filtered.sort((a, b) => a.idx - b.idx);
+  return { indices: filtered.map(o => o.idx), prominences: filtered.map(o => o.prom) };
+}
+
+/* ============================= EXCEL PARSING ============================= */
+
+function normalizeHeaderText(text) {
+  if (text === null || text === undefined || text === "") return "";
+  let t = String(text).trim().toLowerCase();
+  t = t.replace(/º/g, "°").replace(/−/g, "-").replace(/\/min/g, " min")
+       .replace(/cm-1/g, "cm^-1").replace(/cm−1/g, "cm^-1").replace(/cm⁻¹/g, "cm^-1")
+       .replace(/° c/g, "°c").replace(/\(%\)/g, "%").replace(/\[%\]/g, "%").replace(/\s+/g, " ");
+  return t;
+}
+function cleanNumericValue(value) {
+  if (value === null || value === undefined) return NaN;
+  let s = String(value).trim();
+  if (s === "") return NaN;
+  s = s.replace(/−/g, "-").replace(/[^0-9,.\+\-eE]/g, "");
+  if (["", "+", "-", ".", ","].includes(s)) return NaN;
+  if (s.includes(",") && s.includes(".")) {
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (s.includes(",")) s = s.replace(",", ".");
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : NaN;
+}
+function looksNumeric(value) { return value !== null && value !== undefined && value !== "" && !Number.isNaN(cleanNumericValue(value)); }
+const HEADER_KEYWORDS = ["time","tiempo","min","temperature","temp","temperatura","°c","weight","mass","peso","masa","mg","%","wavenumber","wave number","cm^-1","transmittance","%t","transmitancia","heat flow","heatflow","flujo","hf","w/g","mw","mw/mg"];
+function detectHeaderRow(raw, maxHeaderRows = 30) {
+  let bestRow = null, bestScore = -Infinity;
+  const nRows = Math.min(maxHeaderRows, raw.length);
+  for (let r = 0; r < nRows; r++) {
+    const row = raw[r] || [];
+    const normalized = row.map(normalizeHeaderText);
+    const nonEmpty = normalized.filter(x => x !== "");
+    if (nonEmpty.length === 0) continue;
+    let textCells = 0, numericCells = 0, keywordHits = 0, unitOnlyHits = 0;
+    for (const x of nonEmpty) {
+      if (looksNumeric(x)) numericCells++; else textCells++;
+      if (HEADER_KEYWORDS.some(k => x.includes(k))) keywordHits++;
+      if (["min", "°c", "c", "mg", "%"].includes(x)) unitOnlyHits++;
+    }
+    const score = keywordHits * 20 + textCells * 4 - numericCells * 8 - unitOnlyHits * 10;
+    if (score > bestScore) { bestScore = score; bestRow = r; }
+  }
+  if (bestRow === null) throw new Error("Could not detect a valid header row in the Excel file.");
+  return bestRow;
+}
+function makeUniqueHeaders(headers) {
+  const seen = {};
+  return headers.map(h => {
+    let name = (h === null || h === undefined) ? "" : String(h).trim();
+    if (name === "") name = "col";
+    if (!(name in seen)) { seen[name] = 0; return name; }
+    seen[name] += 1; return `${name}_${seen[name]}`;
+  });
+}
+function loadExcelWithAutoHeader(raw) {
+  if (!raw || raw.length === 0) throw new Error("The Excel sheet is empty.");
+  const bestRow = detectHeaderRow(raw);
+  const headerRow = raw[bestRow] || [];
+  let headers, dataStart;
+  if (bestRow + 1 < raw.length) {
+    const nextRow = raw[bestRow + 1] || [];
+    const nextNorm = nextRow.map(normalizeHeaderText);
+    const unitCount = nextNorm.filter(x => ["min", "°c", "c", "mg", "%", "w/g", "mw", "mw/mg"].includes(x)).length;
+    if (unitCount >= 2) {
+      const combined = headerRow.map((h, i) => {
+        const u = nextRow[i]; const hN = normalizeHeaderText(h), uN = normalizeHeaderText(u);
+        if (hN && uN && !hN.includes(uN)) return `${h} ${u}`;
+        return h;
+      });
+      headers = makeUniqueHeaders(combined); dataStart = bestRow + 2;
+    } else { headers = makeUniqueHeaders(headerRow); dataStart = bestRow + 1; }
+  } else { headers = makeUniqueHeaders(headerRow); dataStart = bestRow + 1; }
+  const rows = [];
+  for (let r = dataStart; r < raw.length; r++) {
+    const rawRow = raw[r] || [];
+    if (rawRow.every(v => v === null || v === undefined || v === "")) continue;
+    const obj = {}; headers.forEach((h, i) => { obj[h] = rawRow[i]; }); rows.push(obj);
+  }
+  return { headers, rows };
+}
+function findColumnByPatterns(headers, patterns, required = true) {
+  const normCols = headers.map(normalizeHeaderText);
+  for (const p of patterns) {
+    const re = new RegExp(normalizeHeaderText(p));
+    for (let i = 0; i < normCols.length; i++) if (re.test(normCols[i])) return headers[i];
+  }
+  for (const p of patterns) {
+    const pn = normalizeHeaderText(p);
+    for (let i = 0; i < normCols.length; i++) if (normCols[i].includes(pn)) return headers[i];
+  }
+  if (required) throw new Error(`Could not identify a column matching ${patterns}.`);
+  return null;
+}
+function colSeries(rows, col) { return rows.map(r => cleanNumericValue(r[col])); }
+function findBestMonotonicTemperatureColumn(headers, rows, exclude = []) {
+  let best = null, bestScore = -Infinity;
+  for (const col of headers) {
+    if (exclude.includes(col)) continue;
+    const series = colSeries(rows, col).filter(Number.isFinite);
+    if (series.length < 8) continue;
+    let incCount = 0;
+    for (let i = 1; i < series.length; i++) if (series[i] >= series[i - 1]) incCount++;
+    const incRatio = incCount / (series.length - 1);
+    const mn = Math.min(...series), mx = Math.max(...series);
+    let score = incRatio * 10 + Math.min((mx - mn) / 50, 10);
+    if (mn >= -150 && mn <= 1200) score += 5;
+    if (score > bestScore) { bestScore = score; best = col; }
+  }
+  return best;
+}
+function findBestWeightPctColumn(headers, rows, exclude = []) {
+  let best = null, bestScore = -Infinity;
+  for (const col of headers) {
+    if (exclude.includes(col)) continue;
+    const series = colSeries(rows, col).filter(Number.isFinite);
+    if (series.length < 8) continue;
+    const inRange = series.filter(v => v >= 0 && v <= 100).length / series.length;
+    const mn = Math.min(...series), mx = Math.max(...series);
+    const score = inRange * 20 + Math.min((mx - mn) / 10, 5);
+    if (score > bestScore) { bestScore = score; best = col; }
+  }
+  return best;
+}
+function findBestWeightMgColumn(headers, rows, exclude = []) {
+  let best = null, bestScore = -Infinity;
+  for (const col of headers) {
+    if (exclude.includes(col)) continue;
+    const series = colSeries(rows, col).filter(Number.isFinite);
+    if (series.length < 8) continue;
+    const plausible = series.filter(v => v > 0 && v < 1000).length / series.length;
+    const mn = Math.min(...series), mx = Math.max(...series);
+    const score = plausible * 15 + Math.min((mx - mn) / 5, 5);
+    if (score > bestScore) { bestScore = score; best = col; }
+  }
+  return best;
+}
+function findBestTimeColumn(headers, rows, exclude = []) {
+  let best = null, bestScore = -Infinity;
+  for (const col of headers) {
+    if (exclude.includes(col)) continue;
+    const series = colSeries(rows, col).filter(Number.isFinite);
+    if (series.length < 8) continue;
+    let incCount = 0;
+    for (let i = 1; i < series.length; i++) if (series[i] >= series[i - 1]) incCount++;
+    const incRatio = incCount / (series.length - 1);
+    const mn = Math.min(...series), mx = Math.max(...series);
+    const score = incRatio * 10 + Math.min((mx - mn) / 10, 10);
+    if (score > bestScore) { bestScore = score; best = col; }
+  }
+  return best;
+}
+function extractNumericMultiple(rows, mapping, minRows = 5) {
+  const keys = Object.keys(mapping);
+  const out = {}; keys.forEach(k => out[k] = []);
+  for (const row of rows) {
+    const vals = keys.map(k => cleanNumericValue(row[mapping[k]]));
+    if (vals.every(Number.isFinite)) keys.forEach((k, i) => out[k].push(vals[i]));
+  }
+  if (out[keys[0]].length < minRows) throw new Error(`Insufficient numeric rows after extracting columns: ${JSON.stringify(mapping)}.`);
+  return out;
+}
+function readFtirRaw(raw, requiredMin = null, requiredMax = null) {
+  if (!raw || raw.length === 0) throw new Error("The FTIR Excel file is empty.");
+  const nCols = Math.max(...raw.map(r => r.length));
+  let bestData = null, bestRows = 0;
+  for (let cx = 0; cx < nCols; cx++) for (let cy = 0; cy < nCols; cy++) {
+    if (cx === cy) continue;
+    const cm1 = [], pctT = [];
+    for (const row of raw) {
+      const x = cleanNumericValue(row[cx]), y = cleanNumericValue(row[cy]);
+      if (Number.isFinite(x) && Number.isFinite(y)) { cm1.push(x); pctT.push(y); }
+    }
+    if (cm1.length < 10) continue;
+    const xMin = Math.min(...cm1), xMax = Math.max(...cm1), yMin = Math.min(...pctT), yMax = Math.max(...pctT);
+    const plausibleX = xMin >= 300 && xMax <= 5000 && (xMax - xMin) > 200;
+    const plausibleY = yMin >= -20 && yMax <= 150;
+    if (!plausibleX || !plausibleY) continue;
+    if (cm1.length > bestRows) { bestRows = cm1.length; bestData = { cm1, pctT }; }
+  }
+  if (!bestData) throw new Error("No valid FTIR numeric data could be extracted (need two numeric columns: wavenumber and transmittance).");
+  const order = bestData.cm1.map((_, i) => i).sort((a, b) => bestData.cm1[a] - bestData.cm1[b]);
+  const cm1 = order.map(i => bestData.cm1[i]), pctT = order.map(i => bestData.pctT[i]);
+  if (requiredMin !== null && cm1[0] > requiredMin) throw new Error(`FTIR spectrum does not cover the required lower range (need >= ${requiredMin}, have ${cm1[0].toFixed(1)}).`);
+  if (requiredMax !== null && cm1[cm1.length - 1] < requiredMax) throw new Error(`FTIR spectrum does not cover the required upper range (need <= ${requiredMax}, have ${cm1[cm1.length - 1].toFixed(1)}).`);
+  return { cm1, pctT };
+}
+// Some instrument software (observed on Mettler-Toledo STARe exports) stacks
+// MULTIPLE independent curves in a single sheet, one after another, each
+// introduced by its own "Curve Name:" / "Curve Values:" marker block (own
+// header row + units row + numeric data). A common pairing is a pre-computed
+// derivative curve (units "1/°C") followed by the raw weight curve (units
+// "%"). Feeding the whole sheet through the generic single-table parser
+// concatenates both curves into one nonsensical series (and, once sorted by
+// temperature, interleaves them row-by-row into a physically meaningless
+// signal). Detect this layout up front and, if found, read only the block
+// whose value column is explicitly in "%" (weight-percent).
+function detectStareCurveBlocks(raw) {
+  const markers = [];
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i] || [];
+    const joined = row.map(c => String(c === null || c === undefined ? "" : c).trim().toLowerCase()).join("|");
+    if (joined.includes("curve") && joined.includes("values")) markers.push(i);
+  }
+  if (markers.length === 0) return null;
+  return markers.map((m, bi) => ({
+    headerRow: raw[m + 1] || [],
+    unitsRow: raw[m + 2] || [],
+    dataStart: m + 3,
+    dataEnd: bi + 1 < markers.length ? markers[bi + 1] : raw.length,
+  }));
+}
+function readTgaFromStareBlocks(raw, blocks) {
+  let weightBlock = null;
+  for (const blk of blocks) {
+    const units = blk.unitsRow.map(u => String(u === null || u === undefined ? "" : u).toLowerCase());
+    if (units.some(u => u.includes("%"))) { weightBlock = blk; break; }
+  }
+  if (!weightBlock) return null;
+  const header = weightBlock.headerRow.map(h => String(h === null || h === undefined ? "" : h).toLowerCase());
+  const units = weightBlock.unitsRow.map(u => String(u === null || u === undefined ? "" : u).toLowerCase());
+  let tempCol = -1, valCol = -1;
+  for (let c = 0; c < Math.max(header.length, units.length); c++) {
+    const h = header[c] || "", u = units[c] || "";
+    if (tempCol === -1 && (h.includes("ts") || h.includes("temp") || u.includes("c]") || u.includes("°"))) tempCol = c;
+    if (u.includes("%")) valCol = c;
+  }
+  if (tempCol === -1 || valCol === -1) return null;
+  const T = [], W = [];
+  for (let r = weightBlock.dataStart; r < weightBlock.dataEnd; r++) {
+    const row = raw[r] || [];
+    const t = cleanNumericValue(row[tempCol]), w = cleanNumericValue(row[valCol]);
+    if (Number.isFinite(t) && Number.isFinite(w)) { T.push(t); W.push(w); }
+  }
+  if (T.length < 20) return null;
+  const order = T.map((_, i) => i).sort((a, b) => T[a] - T[b]);
+  let Tsorted = order.map(i => T[i]), Wsorted = order.map(i => W[i]);
+  const wMax = Math.max(...Wsorted), wMin = Math.min(...Wsorted);
+  if (wMax > 110 || wMin < -10) Wsorted = Wsorted.map(v => (v / wMax) * 100.0);
+  return { T: Tsorted, W: Wsorted };
+}
+function readTgaRaw(raw) {
+  const stareBlocks = detectStareCurveBlocks(raw);
+  if (stareBlocks) {
+    const stareResult = readTgaFromStareBlocks(raw, stareBlocks);
+    if (stareResult) return stareResult;
+  }
+  const { headers, rows } = loadExcelWithAutoHeader(raw);
+  let tempCol = findColumnByPatterns(headers, ["^temperature$", "temperature.*°c", "temperature.*c", "temp", "temperatura"], false);
+  if (!tempCol) tempCol = findBestMonotonicTemperatureColumn(headers, rows);
+  let weightCol = findColumnByPatterns(headers, ["weight.*%", "mass.*%", "wt.*%", "%.*weight", "residue.*%", "weight %"], false);
+  if (!weightCol) weightCol = findBestWeightPctColumn(headers, rows, tempCol ? [tempCol] : []);
+  if (!weightCol) weightCol = findBestWeightMgColumn(headers, rows, tempCol ? [tempCol] : []);
+  if (!tempCol || !weightCol) throw new Error("Could not identify temperature and weight columns in the TGA file.");
+  const { Temperature, Weight } = extractNumericMultiple(rows, { Temperature: tempCol, Weight: weightCol }, 20);
+  const order = Temperature.map((_, i) => i).sort((a, b) => Temperature[a] - Temperature[b]);
+  let T = order.map(i => Temperature[i]), W = order.map(i => Weight[i]);
+  const wMax = Math.max(...W), wMin = Math.min(...W);
+  if (wMax > 110 || wMin < -10) W = W.map(v => (v / wMax) * 100.0);
+  return { T, W };
+}
+function readDscSheetRaw(raw) {
+  const { headers, rows } = loadExcelWithAutoHeader(raw);
+  let timeCol = findColumnByPatterns(headers, ["^time$", "time.*min", "time.*s", "tiempo", "^min$"], false);
+  let tempCol = findColumnByPatterns(headers, ["^temperature$", "temperature.*°c", "temperature.*c", "temp", "temperatura", "sample temperature", "furnace temperature", "^°c$", "^c$"], false);
+  if (!tempCol) tempCol = findBestMonotonicTemperatureColumn(headers, rows);
+  if (!timeCol) timeCol = findBestTimeColumn(headers, rows, tempCol ? [tempCol] : []);
+  let hfCol = findColumnByPatterns(headers, ["heat.*flow", "heatflow", "flujo.*calor", "flow.*w/g", "flow.*mw", "hf", "^w/g$", "^mw$", "^mw/mg$"], false);
+  if (!hfCol) {
+    let best = null, bestScore = -Infinity;
+    for (const col of headers) {
+      if (col === timeCol || col === tempCol) continue;
+      const series = colSeries(rows, col).filter(Number.isFinite);
+      if (series.length < 8) continue;
+      const mn = Math.min(...series), mx = Math.max(...series), range = mx - mn;
+      const centered = Math.abs(meanArr(series)) < 10000 ? 1 : 0;
+      const score = Math.min(range / 10, 10) + centered * 3;
+      if (score > bestScore) { bestScore = score; best = col; }
+    }
+    hfCol = best;
+  }
+  if (!tempCol || !hfCol) throw new Error("Could not identify DSC temperature / heat-flow columns.");
+  const mapping = { Temperature_C: tempCol, HeatFlow: hfCol };
+  if (timeCol) mapping.Time_min = timeCol;
+  return extractNumericMultiple(rows, mapping, 5);
+}
+function readDscThreeCyclesRaw(raw) {
+  if (!raw || raw.length === 0) throw new Error("The DSC file is empty.");
+  const nCols = Math.max(...raw.map(r => r.length));
+  const label = (r, c) => { const v = (raw[r] || [])[c]; return (v === null || v === undefined || v === "") ? "" : String(v).trim().toLowerCase(); };
+  const blockStarts = [], blockLabels = [];
+  let col = 0;
+  while (col < nCols) {
+    const lbl = label(0, col);
+    if (lbl.includes("heating") || lbl.includes("cooling")) { blockStarts.push(col); blockLabels.push(lbl); col += 4; }
+    else col += 1;
+  }
+  let starts = blockStarts, labels = blockLabels;
+  if (starts.length < 3) { starts = [0, 4, 8]; labels = ["heating", "cooling", "heating"]; }
+  let dataStart = 4;
+  for (let r = 0; r < raw.length; r++) {
+    const v = cleanNumericValue((raw[r] || [])[starts[0]]);
+    if (Number.isFinite(v)) { dataStart = r; break; }
+  }
+  function block(startCol) {
+    const T = [], time = [], HF = [];
+    for (let r = dataStart; r < raw.length; r++) {
+      const row = raw[r] || [];
+      const t = cleanNumericValue(row[startCol]);
+      const temperature = cleanNumericValue(row[startCol + 1]);
+      const heatFlow = cleanNumericValue(row[startCol + 2]);
+      if (Number.isFinite(temperature) && Number.isFinite(heatFlow)) { time.push(Number.isFinite(t) ? t : time.length); T.push(temperature); HF.push(heatFlow); }
+    }
+    return { time, T, HF };
+  }
+  let heat1 = null, cool = null, heat2 = null, heatSeen = 0;
+  for (let i = 0; i < starts.length; i++) {
+    const blk = block(starts[i]);
+    // A block object is always truthy even when parsing yielded zero rows
+    // (e.g. a locale/format mismatch — this file's own comma-decimal values
+    // are already handled by cleanNumericValue above, but other malformed
+    // data could still empty a block), so check row count explicitly rather
+    // than just truthiness, matching the equivalent Python-side guard.
+    if (blk.T.length === 0) throw new Error(`The '${labels[i]}' block (columns ${starts[i]}-${starts[i] + 2}) contains no parseable numeric data.`);
+    if (labels[i].includes("cooling")) cool = blk;
+    else if (labels[i].includes("heating")) { if (heatSeen === 0) { heat1 = blk; heatSeen++; } else heat2 = blk; }
+  }
+  if (!heat1 || !cool || !heat2) throw new Error(`Could not identify all three DSC cycles (1st Heating, Cooling, 2nd Heating). Labels found: ${labels}`);
+  return { heat1, cool, heat2 };
+}
+
+/* ============================= FTIR ANALYSIS ============================= */
+
+function applyFtirLocalBaseline(cm1, pctT, upperLimit, lowerLimit) {
+  const maxLim = Math.max(upperLimit, lowerLimit), minLim = Math.min(upperLimit, lowerLimit);
+  const idx = [];
+  for (let i = 0; i < cm1.length; i++) if (cm1[i] >= minLim && cm1[i] <= maxLim) idx.push(i);
+  if (idx.length < 5) throw new Error(`Insufficient FTIR points in band ${minLim}-${maxLim} cm-1.`);
+  idx.sort((a, b) => cm1[a] - cm1[b]);
+  const x = idx.map(i => cm1[i]), y = idx.map(i => pctT[i]);
+  const xLeft = x[0], yLeft = y[0], xRight = x[x.length - 1], yRight = y[y.length - 1];
+  let baseline = xLeft === xRight ? x.map(() => Math.max(yLeft, yRight))
+    : x.map(v => yLeft + (yRight - yLeft) * ((v - xLeft) / (xRight - xLeft)));
+  baseline = baseline.map(v => Math.max(v, 1e-6));
+  const valleyDepth = y.map((v, i) => Math.max(baseline[i] - v, 0));
+  const baselineSafe = baseline.map(v => Math.max(v, 1e-6));
+  const pctTCorrected = y.map((v, i) => Math.min(Math.max((v / baselineSafe[i]) * 100, 0), 100));
+  return { x, y, baseline, valleyDepth, pctTCorrected };
+}
+function integrateFtirBand(cm1, pctT, upperLimit, lowerLimit) {
+  const band = applyFtirLocalBaseline(cm1, pctT, upperLimit, lowerLimit);
+  return Math.abs(trapz(band.valleyDepth, band.x));
+}
+function calculateFtirDescriptor(cm1, pctT, band1Upper, band1Lower, band2Upper, band2Lower) {
+  const area1 = integrateFtirBand(cm1, pctT, band1Upper, band1Lower);
+  const area2 = integrateFtirBand(cm1, pctT, band2Upper, band2Lower);
+  if (area2 === 0) throw new Error("The denominator FTIR band area is zero.");
+  return { di: area1 / area2, area1, area2 };
+}
+function calculateFtirVariation(diRef, diSample) {
+  if (diRef === 0) throw new Error("DI_ref is zero; FTIR variation cannot be calculated.");
+  return ((diSample - diRef) / diRef) * 100.0;
+}
+function classifyResult(value, acceptableLimit, reexamMin, reexamMax) {
+  if (value < acceptableLimit) return "ACCEPTABLE";
+  if (value >= reexamMin && value <= reexamMax) return "RE-EXAMINE";
+  return "NOT ACCEPTABLE";
+}
+
+/* ============================= TGA ANALYSIS ============================= */
+
+function computeTgaDerivative(temperature, weight, sgWindow = 51, sgPolyorder = 3) {
+  const n = temperature.length;
+  const safeWindow = (nn, win, order) => {
+    let w = Math.min(win, nn - 2); w = w % 2 === 1 ? w : w - 1;
+    const minWin = (order + 2) % 2 === 1 ? order + 2 : order + 3;
+    return Math.max(w, minWin);
+  };
+  const w = safeWindow(n, sgWindow, sgPolyorder);
+  const wSmooth = savgolFilter(weight, w, sgPolyorder);
+  const dWdTRaw = gradientArr(wSmooth, temperature);
+  const dWdTSmooth = savgolFilter(dWdTRaw, w, sgPolyorder);
+  return { dWdTRaw, dWdTSmooth };
+}
+function findInterpolatedTmaxInWindow(temperature, derivative, tMin, tMax) {
+  const idx = [];
+  for (let i = 0; i < temperature.length; i++) if (temperature[i] >= tMin && temperature[i] <= tMax) idx.push(i);
+  if (idx.length === 0) throw new Error(`No TGA data found in window ${tMin}-${tMax} C.`);
+  let best = idx[0];
+  for (const i of idx) if (derivative[i] < derivative[best]) best = i;
+  return { tmax: temperature[best], derivMin: derivative[best] };
+}
+// Ports Python's find_single_interpolated_tmax_auto(): auto-detects the
+// single, most prominent DTG minimum (Tmax = peak weight-loss rate) WITHOUT
+// requiring a pre-defined, material-specific temperature window. Mirrors the
+// peak-detection approach already used for TPU's two-stage search
+// (findTwoDistinctInterpolatedTmax): genuine local minima of the derivative
+// curve are found via findPeaks (peaks of -derivative), ranked by prominence,
+// and the single most prominent one is returned. Replaces the old approach
+// of a hard argmin restricted to a fixed window (e.g. 515-585 C for PEEK),
+// which had no way to notice a genuine degradation peak sitting outside its
+// assumed window. edgeMarginFrac (default 2% of point count at each end)
+// excludes only a small numerical-safety margin at the very start/end of the
+// array (SG-smoothing/gradient edge effects, instrument-settling
+// transients) — not a material-specific assumption about peak location.
+// Falls back to a plain global argmin over the same safe range if findPeaks
+// finds no candidate.
+function findSingleInterpolatedTmaxAuto(temperature, derivative, edgeMarginFrac = 0.02) {
+  const n = temperature.length;
+  if (n < 10) throw new Error("TGA curve too short to auto-detect a degradation peak.");
+  const m = Math.max(1, Math.floor(edgeMarginFrac * n));
+  const Ts = temperature.slice(m, n - m);
+  const Ds = derivative.slice(m, n - m);
+  const negD = Ds.map(v => -v);
+  const { indices: peaksIdx, prominences } = findPeaks(negD, { prominence: stdArr(Ds) * 0.3 });
+  let best;
+  if (peaksIdx.length > 0) {
+    let bestI = 0;
+    for (let k = 1; k < peaksIdx.length; k++) if (prominences[k] > prominences[bestI]) bestI = k;
+    best = peaksIdx[bestI];
+  } else {
+    best = 0;
+    for (let i = 1; i < Ds.length; i++) if (Ds[i] < Ds[best]) best = i;
+  }
+  return { tmax: Ts[best], derivMin: Ds[best] };
+}
+function stdArr(arr) {
+  const m = meanArr(arr);
+  let s = 0; for (const v of arr) s += (v - m) * (v - m);
+  return Math.sqrt(s / arr.length);
+}
+// Ports Python's find_two_distinct_interpolated_tmax(): a genuine two-peak
+// search over the FULL combined stage1-stage2 range (prominence + minimum
+// separation), with a midpoint-split fallback. Replaces an earlier, simpler
+// approach that searched each configured stage window independently — that
+// simplification broke down whenever a specimen's real degradation
+// temperatures drifted close to/across the stage1/stage2 boundary (a very
+// plausible situation for an aged or reprocessed "evaluated" specimen),
+// silently latching onto a boundary artifact instead of the true peak.
+function findTwoDistinctInterpolatedTmax(temperature, derivative, tGlobalMin, tGlobalMax, minSeparationC = 40) {
+  const idx = [];
+  for (let i = 0; i < temperature.length; i++) if (temperature[i] >= tGlobalMin && temperature[i] <= tGlobalMax) idx.push(i);
+  if (idx.length === 0) throw new Error(`No TGA data in range ${tGlobalMin.toFixed(1)}-${tGlobalMax.toFixed(1)} C.`);
+  const Tr = idx.map(i => temperature[i]);
+  const Dr = idx.map(i => derivative[i]);
+
+  const step = Tr.length > 1 ? (Tr[Tr.length - 1] - Tr[0]) / Tr.length : 1.0;
+  const minDistance = Math.max(5, Math.round(minSeparationC / Math.abs(step || 1)));
+
+  const negD = Dr.map(v => -v);
+  const { indices: peaksIdx } = findPeaks(negD, { distance: minDistance, prominence: stdArr(Dr) * 0.3 });
+
+  if (peaksIdx.length >= 2) {
+    const ranked = peaksIdx.slice().sort((a, b) => negD[b] - negD[a]);
+    const selected = [ranked[0]];
+    for (let k = 1; k < ranked.length && selected.length < 2; k++) {
+      const c = ranked[k];
+      if (selected.every(s => Math.abs(Tr[c] - Tr[s]) >= minSeparationC)) selected.push(c);
+    }
+    if (selected.length === 2) {
+      selected.sort((a, b) => a - b);
+      return { tmax1: Tr[selected[0]], derivative1: Dr[selected[0]], tmax2: Tr[selected[1]], derivative2: Dr[selected[1]] };
+    }
+  }
+
+  const mid = Math.floor(Tr.length / 2);
+  let i1 = 0; for (let i = 1; i < mid; i++) if (Dr[i] < Dr[i1]) i1 = i;
+  let i2 = mid; for (let i = mid + 1; i < Tr.length; i++) if (Dr[i] < Dr[i2]) i2 = i;
+  return { tmax1: Tr[i1], derivative1: Dr[i1], tmax2: Tr[i2], derivative2: Dr[i2] };
+}
+function normalizedDistance2d(x1, y1, x2, y2) {
+  const normDx = x1 !== 0 ? (x2 - x1) / Math.abs(x1) : (x2 - x1);
+  const normDy = y1 !== 0 ? (y2 - y1) / Math.abs(y1) : (y2 - y1);
+  return Math.sqrt(normDx * normDx + normDy * normDy);
+}
+
+/* ============================= DSC ANALYSIS ============================= */
+
+// `time` (optional): per-point acquisition time in minutes, aligned 1:1 with
+// T/HF (same array, same index order). ΔH is physically ∫ HeatFlow dt, with
+// HeatFlow already in W/g — the correct integration variable is elapsed
+// TIME, not Temperature. When `time` is supplied, the integral is evaluated
+// against real elapsed time (converted to seconds); every caller that
+// *reports a ΔH number* must pass it. Omitting it falls back to integrating
+// against Temperature, which silently rescales the result by the DSC scan
+// rate — e.g. a 10 °C/min ramp under-reports ΔH by ~6x (verified against
+// real TPU_225 cooling data: ~3.1 J/g temperature-integrated vs. ~18.8 J/g
+// time-integrated for the same crystallization zone). That fallback is kept
+// only for callers that use this purely to draw the baseline/fill-zone
+// shape on a plot and never read back `dH`.
+function enthalpyLinearZone(T, HF, tLeft, tRight, time) {
+  const idx = [];
+  for (let i = 0; i < T.length; i++) if (T[i] >= tLeft && T[i] <= tRight) idx.push(i);
+  if (idx.length < 4) return { Tzone: [], HFsmZone: [], HFbaseline: [], Tonset: tLeft, Tendset: tRight, HFonset: 0, HFendset: 0, dH: 0 };
+  idx.sort((a, b) => T[a] - T[b]);
+  const Tz = idx.map(i => T[i]), HFz = idx.map(i => HF[i]);
+  const timeZ = time ? idx.map(i => time[i]) : null;
+  const HFsm = sgSmoothArr(HFz);
+  const dT = Tz[Tz.length - 1] - Tz[0];
+  const bl = dT === 0 ? HFsm.map(() => HFsm[0]) : Tz.map(v => HFsm[0] + (HFsm[HFsm.length - 1] - HFsm[0]) * (v - Tz[0]) / dT);
+  const corrected = HFsm.map((v, i) => v - bl[i]);
+  let dH;
+  if (timeZ) {
+    const tS = timeZ.map(v => v * 60.0);
+    const order = tS.map((_, i) => i).sort((a, b) => tS[a] - tS[b]);
+    dH = Math.abs(trapz(order.map(i => corrected[i]), order.map(i => tS[i])));
+  } else {
+    dH = Math.abs(trapz(corrected, Tz));
+  }
+  return { Tzone: Tz, HFsmZone: HFsm, HFbaseline: bl, Tonset: Tz[0], Tendset: Tz[Tz.length - 1], HFonset: HFsm[0], HFendset: HFsm[HFsm.length - 1], dH };
+}
+// True if HFsm.slice(preEnd, postStart+1) is (aside from noise) a monotonic
+// shift from one level to another, i.e. consistent with a genuine glass-
+// transition Cp-step rather than a melting/(cold-)crystallization peak.
+// A real Tg step only ever moves in one net direction between its two
+// baselines; a peak sitting in the same window rises and then reverses most
+// of the way back toward where it started. tolFrac sets how much
+// backtracking (as a fraction of the segment's net height) is tolerated as
+// ordinary curve noise before a candidate is rejected as peak-like.
+function isMonotonicStep(HFsm, preEnd, postStart, tolFrac = 0.30) {
+  const seg = HFsm.slice(preEnd, postStart + 1);
+  if (seg.length < 3) return true;
+  const net = seg[seg.length - 1] - seg[0];
+  if (Math.abs(net) < 1e-9) return false;
+  const cum = [0];
+  for (let i = 1; i < seg.length; i++) cum.push(cum[i - 1] + (seg[i] - seg[i - 1]));
+  const tol = tolFrac * Math.abs(net);
+  if (net > 0) {
+    let runningMax = -Infinity;
+    for (const c of cum) { runningMax = Math.max(runningMax, c); if (runningMax - c > tol) return false; }
+    return true;
+  } else {
+    let runningMin = Infinity;
+    for (const c of cum) { runningMin = Math.min(runningMin, c); if (c - runningMin > tol) return false; }
+    return true;
+  }
+}
+// Locates a narrow, high-amplitude LEVEL-SHIFT discontinuity (as opposed to a
+// genuine melting/cold-crystallization PEAK) inside a candidate's own
+// [preC,postC] bracket, using the exact same running-extreme/cumulative-sum
+// logic as isMonotonicStep above (so "narrow" is judged on the same terms
+// that flagged the bracket as non-monotonic in the first place) — but
+// evaluated on the RAW (unsmoothed) heat flow, not HFsm. Verified against a
+// real reference-specimen PEEK cooling scan: the heavy tgSmoothArr smoothing
+// spreads a genuinely narrow (~0.2 degC-wide) instrumental discontinuity
+// across several degrees before the search ever sees it, which both defeats
+// simple outlier detection AND makes a real, single-source glitch look like
+// a broad, genuine competing feature. Working from the raw signal instead
+// recovers the true, narrow extent of the artefact.
+//
+// A genuine cold-crystallization-like peak reverses over a LARGE fraction of
+// its own bracket (its rising flank and falling tail are comparable in
+// length to the whole feature) — verified this stays comfortably above
+// maxSpikeFrac (real peaks measured here spanned 40-55% of their bracket)
+// while a true narrow export artefact spans a few percent, so this ratio
+// reliably tells the two apart without disturbing the existing peak guard.
+function findLevelShiftSpan(HFlocal, preC, postC, maxSpikeFrac, minSpan) {
+  const seg = HFlocal.slice(preC, postC + 1);
+  const net = seg[seg.length - 1] - seg[0];
+  if (Math.abs(net) < 1e-9) return null;
+  let runningExt = net > 0 ? -Infinity : Infinity;
+  let runningExtIdx = -1, worstViol = -Infinity, worstIdx = -1, worstExtIdx = -1;
+  let cum = 0;
+  const cumArr = [0];
+  for (let i = 1; i < seg.length; i++) { cum += seg[i] - seg[i - 1]; cumArr.push(cum); }
+  for (let i = 0; i < seg.length; i++) {
+    if (net > 0) {
+      if (cumArr[i] > runningExt) { runningExt = cumArr[i]; runningExtIdx = i; }
+      const viol = runningExt - cumArr[i];
+      if (viol > worstViol) { worstViol = viol; worstIdx = i; worstExtIdx = runningExtIdx; }
+    } else {
+      if (cumArr[i] < runningExt) { runningExt = cumArr[i]; runningExtIdx = i; }
+      const viol = cumArr[i] - runningExt;
+      if (viol > worstViol) { worstViol = viol; worstIdx = i; worstExtIdx = runningExtIdx; }
+    }
+  }
+  if (worstExtIdx < 0 || worstIdx <= worstExtIdx) return null;
+  const spanLen = worstIdx - worstExtIdx;
+  const bracketLen = postC - preC;
+  if (bracketLen <= 0 || spanLen < minSpan || spanLen > maxSpikeFrac * bracketLen) return null;
+  const tol = 0.30 * Math.abs(net);
+  if (worstViol <= tol) return null;
+  return { jStartIdx: preC + worstExtIdx, jEndIdx: preC + worstIdx };
+}
+function tgAnalysisArr(temperature, heatFlow, tgMin, tgMax, allowRescue = true) {
+  // ASTM E1356 Tg midpoint plus tangent-line construction data for plotting.
+  //
+  // Real PEEK DSC scans (as opposed to the synthetic Gaussian-noise curves
+  // this was originally validated against) turned out to have a low-level
+  // "staircase" quantization pattern — brief, periodic point-to-point jumps
+  // from limited decimal resolution in the exported heat-flow values. Those
+  // jumps have instantaneous |gradient| that can exceed a genuine, but
+  // broader and gentler, Cp-step's own gradient, so an argmax(|gradient|)
+  // search tuned against smooth synthetic data would reliably lock onto one
+  // of these quantization blips instead of the real transition — verified on
+  // real files where the reported "Tg" landed 15-30 degC away from where the
+  // curve visibly steps, with the pre/post tangent-line fits collapsing to
+  // a handful of points near a window edge as a symptom.
+  //
+  // The fix smooths considerably harder before searching for the inflection
+  // (tgSmoothArr, a window sized to comfortably span several quantization
+  // periods while staying much narrower than a genuine transition), which
+  // was verified directly against 7 real uploaded PEEK DSC files to
+  // correctly reveal the broad, smooth sigmoid step underneath in every
+  // case. Several additional guards were added alongside this, each
+  // targeting a specific failure mode found while validating against those
+  // same real files:
+  //   * the adaptive flat-baseline search's fallback margin is capped by how
+  //     much room is actually available on that side of the candidate,
+  //     instead of blindly subtracting a fixed 20%-of-window margin that can
+  //     run negative (and silently collapse to a 2-point fit) whenever the
+  //     transition sits close to a window edge;
+  //   * a degeneracy guard forces the pre/post boundary strictly outside the
+  //     candidate index, since the flat-run walk can otherwise trivially
+  //     return the candidate's own position when the whole neighbourhood
+  //     reads as "flat" relative to a threshold sized for a much larger,
+  //     unrelated feature elsewhere in the window;
+  //   * on rejecting a candidate, a generous fixed margin (not just its own
+  //     narrow flat-to-flat span) is masked out — a peak's |gradient| dips
+  //     back toward zero at its own apex (the derivative of a local max is
+  //     zero), so gradient-threshold-based masking alone can under-shoot a
+  //     tall peak's true extent and stall the search cycling around the
+  //     same feature for many attempts without escaping it;
+  //   * the pre/post tangent-line fits and the midpoint-crossing search are
+  //     bounded to a local neighbourhood of the candidate rather than
+  //     sweeping all the way to the array ends, so they can't accidentally
+  //     run through a distant, unrelated feature and silently bias the
+  //     tangent slope;
+  //   * the resulting onset/Tg/endset must fall in a sane ascending order,
+  //     with the crossing point strictly inside (not right at the edge of)
+  //     its search bracket, and the candidate's own bracket must not
+  //     substantially overlap an already-rejected genuine peak's bracket —
+  //     each catches a distinct way a low-confidence candidate can otherwise
+  //     slip through with a self-consistent-looking but physically wrong
+  //     result;
+  //   * the tangent-line fits AND the midpoint-crossing search are also kept
+  //     clear of any span already rejected earlier in the SAME search as a
+  //     genuine, distinct, non-monotonic feature — a wide, fallback-derived
+  //     preC/postC bracket (needed elsewhere for stable fits against real,
+  //     noisy baselines) can otherwise still be wide enough for the blind
+  //     +/- bp fit extension to run straight through that already-identified
+  //     feature, even though the search had already correctly rejected it
+  //     once. Verified against a synthetic Tg step sitting close to a much
+  //     larger cold-crystallization-like peak, which this previously missed
+  //     entirely (the fit's post-transition tangent picked up the peak's own
+  //     rising flank, corrupting onset/endset and, in most trials, failing
+  //     the sanity checks below outright); and
+  //   * the midpoint crossing must itself land between onset and endset
+  //     (with a tolerance relative to their spacing, not a fixed value,
+  //     since real files occasionally place the discrete-index crossing a
+  //     hair outside the continuous tangent lines) — a wide search bracket
+  //     with shallow tangent slopes can otherwise place a "self-consistent"
+  //     crossing well outside the very onset/endset pair it was built from.
+  // A candidate failing any of these checks is rejected and the search
+  // continues; if every candidate is exhausted, this returns null rather
+  // than reporting an unreliable number — for at least one real file (a
+  // single cold-crystallization exotherm so large it swamps nearly the
+  // whole Tg search window) no candidate could be verified as a genuine,
+  // uncontaminated step, and null is the honest answer.
+  const idx = [];
+  for (let i = 0; i < temperature.length; i++) if (temperature[i] >= tgMin && temperature[i] <= tgMax) idx.push(i);
+  if (idx.length < 15) return null;
+  idx.sort((a, b) => temperature[a] - temperature[b]);
+  const T = idx.map(i => temperature[i]), HF = idx.map(i => heatFlow[i]);
+  const HFsm = tgSmoothArr(HF);
+  const n = T.length;
+  const grad = gradientArr(HFsm, T).map(Math.abs);
+  // Search almost the full analyzed window for the inflection point, not just
+  // the central 60 %. A wide excluded margin made sense when this only had to
+  // find a Tg reliably centred in [tgMin, tgMax] (the window is tuned around
+  // the 1st-heating Tg) — but the SAME window is reused for the cooling-cycle
+  // Tg, which commonly sits at a different temperature than the heating Tg
+  // (supercooling / kinetics), often close to one edge of that shared
+  // window. With the old 20-80 % margin, a transition sitting outside it was
+  // invisible to the search entirely, so the algorithm locked onto whatever
+  // noise or partial feature had the largest gradient inside the margin
+  // instead — verified on synthetic data to produce errors of 10-20 degC in
+  // that case. A narrow 5 % margin still guards against pure edge artefacts
+  // (the SG filter's least-reliable region) without excluding genuine
+  // near-edge transitions.
+  let lo = Math.floor(0.05 * n), hi = Math.floor(0.95 * n);
+  lo = Math.max(1, lo); hi = Math.min(n - 2, hi);
+  const bp = Math.max(4, Math.floor(0.20 * n));
+  const minFlatPts = Math.max(4, Math.floor(0.05 * n));
+  const runNeeded = Math.max(2, Math.round(0.03 * n));
+  // Flat-baseline threshold is derived ONCE from the single steepest feature
+  // in the whole window (matching the original single-candidate design), not
+  // recomputed per candidate. A per-candidate threshold shrinks for weaker
+  // candidates (e.g. a point partway up a peak's rising flank, far from its
+  // apex), which lets the adaptive walk below mistake a brief dip in
+  // |gradient| for having "rejoined the baseline" and stop while still
+  // inside the same peak — silently truncating preC/postC to a sliver that
+  // then looks spuriously monotonic. A single global threshold keeps the
+  // flat-boundary walk consistent regardless of which candidate along a
+  // feature is currently being tested.
+  let globalBest = lo, globalBestG = -Infinity;
+  for (let i = lo; i < hi; i++) if (grad[i] > globalBestG) { globalBestG = grad[i]; globalBest = i; }
+  const globalPeakG = grad[globalBest] > 0 ? grad[globalBest] : 1e-12;
+  const flatThresh = 0.15 * globalPeakG;
+
+  function flatBounds(cand) {
+    // Adaptive pre/post "flat baseline" boundary around candidate index
+    // `cand` (walk outward until the local slope relaxes below flatThresh
+    // for a short run of consecutive points).
+    //
+    // Both the natural walk AND its fallback margin below are bounded by
+    // [lo,hi] — the SAME reliability window candidates are drawn from —
+    // instead of the raw array ends (0/n-1). Without this, a candidate
+    // near the edge of [lo,hi] could still grow a preC/postC baseline
+    // bracket straight into the excluded outer-5% zone this function's own
+    // comment above already calls "the SG filter's least-reliable region",
+    // handing the pre/post-transition tangent fits data from a region the
+    // rest of the search deliberately avoids. Verified against a real
+    // cooling-cycle DSC export (reference PEEK specimen) where a narrow,
+    // clearly instrumental discontinuity sat right at the tail of the
+    // genuine Cp step: the genuine candidate was correctly rejected as
+    // non-monotonic, but the fallback search then accepted a marginal,
+    // edge-hugging candidate whose postC baseline had almost no real data
+    // left before running into the window edge (postC beyond `hi`) — an
+    // ASTM-style flat baseline needs real support on both sides, not a
+    // sliver against the boundary. Bounding here makes that candidate fail
+    // its own SNR/monotonicity/order checks honestly (or, when no genuine
+    // step can be verified at all, return null) instead of silently
+    // reporting a Tg 40+ degC away from the real transition.
+    let preC = null, run = 0;
+    for (let k = cand; k >= lo; k--) {
+      if (grad[k] < flatThresh) { run++; if (run >= runNeeded) { preC = k + run - 1; break; } }
+      else run = 0;
+    }
+    let postC = null; run = 0;
+    for (let k = cand; k < hi; k++) {
+      if (grad[k] < flatThresh) { run++; if (run >= runNeeded) { postC = k - run + 1; break; } }
+      else run = 0;
+    }
+    // The fallback margin (used whenever the natural flat-run walk fails, or
+    // finds a run too short to fit a stable line to) is capped by how much
+    // room is actually available on this side of cand within [lo,hi] —
+    // subtracting a fixed 20%-of-window bp blindly can run negative when
+    // cand sits close to a window edge, collapsing to a near-empty,
+    // degenerate fit.
+    const availPre = cand - lo, availPost = hi - cand;
+    const bpPre = Math.min(bp, Math.max(minFlatPts, Math.floor(availPre / 2)));
+    const bpPost = Math.min(bp, Math.max(minFlatPts, Math.floor(availPost / 2)));
+    preC = (preC !== null && preC - lo >= minFlatPts) ? preC : Math.max(lo, cand - bpPre);
+    postC = (postC !== null && (hi - postC) >= minFlatPts) ? postC : Math.min(hi, cand + bpPost);
+    // Degeneracy guard: the natural walk can trivially return preC/postC
+    // equal to (or straddling past) cand itself whenever grad[cand] is
+    // ALREADY below flatThresh (common when flatThresh, derived from one
+    // globally-dominant feature, is simply too large a bar for a much
+    // weaker, genuine candidate elsewhere in the window — everything nearby
+    // then looks "flat" by that oversized yardstick).
+    if (preC >= cand) preC = Math.max(lo, cand - bpPre);
+    if (postC <= cand) postC = Math.min(hi, cand + bpPost);
+    return [preC, postC];
+  }
+
+  function tentativeTg(cand, preC, postC, rejectedPeakSpans) {
+    // Bound the tangent-line fits to a LOCAL neighbourhood around the
+    // transition (up to bp points), not the full remainder of the array —
+    // otherwise the fit can run straight through a distant, unrelated
+    // feature (e.g. a cold-crystallization peak sitting later in the same Tg
+    // window) and silently bias the slope. On top of that blind +/- bp
+    // extension, also never let it cross into a span THIS SAME search
+    // already rejected earlier as a genuine, distinct, non-monotonic
+    // feature — verified against a synthetic step sitting close to a much
+    // larger cold-crystallization-like peak that a fallback-derived
+    // preC/postC bracket can be wide enough to still let a blind +/- bp fit
+    // extension run straight through that already-identified peak, even
+    // though the search had already correctly rejected it once. This only
+    // ever SHRINKS the naive extension, so it changes nothing for the common
+    // case where no such feature was ever rejected nearby.
+    //
+    // Also bounded by [lo,hi] rather than [0,n], for the same reason as
+    // flatBounds above: the pre-/post-transition tangent lines must be fit
+    // from the same reliable interior region candidates are chosen from,
+    // never from the excluded outer-5% edge zone.
+    let preFitLo = Math.max(lo, preC - bp);
+    let postFitHi = Math.min(hi, postC + bp);
+    for (const [rpPre, rpPost] of rejectedPeakSpans) {
+      if (rpPost <= preC && rpPost > preFitLo) preFitLo = rpPost;
+      if (rpPre >= postC && rpPre < postFitHi) postFitHi = rpPre;
+    }
+    const [slPre, icPre] = fitLine(T.slice(preFitLo, preC), HFsm.slice(preFitLo, preC));
+    const [slPost, icPost] = fitLine(T.slice(postC, postFitHi), HFsm.slice(postC, postFitHi));
+    const preLine = evalLine(slPre, icPre, T), postLine = evalLine(slPost, icPost, T);
+    const midLine = T.map((_, i) => 0.5 * (preLine[i] + postLine[i]));
+
+    const gradSigned = gradientArr(HFsm, T);
+    const slopeInf = gradSigned[cand], icInf = HFsm[cand] - slopeInf * T[cand];
+    const denomOn = slPre - slopeInf;
+    let TgOnset = Math.abs(denomOn) > 1e-10 ? (icInf - icPre) / denomOn : null;
+    const denomEnd = slopeInf - slPost;
+    let TgEndset = Math.abs(denomEnd) > 1e-10 ? (icPost - icInf) / denomEnd : null;
+    const Tlo = T[0] - 10.0, Thi = T[n - 1] + 10.0;
+    if (TgOnset !== null && !(Tlo < TgOnset && TgOnset < Thi)) TgOnset = null;
+    if (TgEndset !== null && !(Tlo < TgEndset && TgEndset < Thi)) TgEndset = null;
+
+    // Midpoint crossing, bounded to a local neighbourhood of cand rather
+    // than the (potentially very wide, when using fallback margins) full
+    // [preC, postC] span.
+    let mLo = Math.max(preC, cand - bp);
+    let mHi = Math.min(postC, cand + bp);
+    // Same reasoning as the fit-region clip above: keep the crossing search
+    // itself out of a span already identified as a distinct, rejected
+    // feature, so it can't get matched against HFsm points contaminated by
+    // that feature even when midLine was built from a properly-clipped fit.
+    for (const [rpPre, rpPost] of rejectedPeakSpans) {
+      if (rpPost <= preC && rpPost > mLo) mLo = rpPost;
+      if (rpPre >= postC && rpPre < mHi) mHi = rpPre;
+    }
+    const span = mHi - mLo;
+    if (span <= 0) return [null, null, null, null, null, null, null, false];
+    let relIdx = 0, bestDiff = Infinity;
+    for (let i = 0; i <= mHi - mLo; i++) {
+      const d = Math.abs(HFsm[mLo + i] - midLine[mLo + i]);
+      if (d < bestDiff) { bestDiff = d; relIdx = i; }
+    }
+    const tgIdx = mLo + relIdx;
+    const Tg = T[tgIdx];
+
+    // The crossing should sit in the INTERIOR of its search bracket — a
+    // match right at the edge means the true crossing most likely lies
+    // outside the bracket entirely (this candidate's tangents don't
+    // actually bracket a genuine transition), not a real ASTM midpoint.
+    // Widened from an earlier 3% margin to 6% -- a cooling-cycle Tg step is
+    // often broader and gentler than the corresponding heating step, which
+    // can leave the crossing only marginally inside the bracket (rather
+    // than clearly interior) even for a genuine transition when a nearby
+    // cold-crystallization-like exotherm sits close enough to skew the
+    // post-transition tangent slightly; the tighter margin let that
+    // marginal case slip through as "not at the edge" and get reported,
+    // when the more conservative candidate was in fact both closer to the
+    // true value and correctly rejected under the wider margin in stress
+    // testing.
+    const edgeGuard = span > 0 ? Math.max(1, Math.floor(0.06 * span)) : 0;
+    const atEdge = span <= 0 || relIdx <= edgeGuard || relIdx >= span - edgeGuard;
+    // By ASTM tangent construction, the midpoint crossing must fall between
+    // onset and endset — if the search bracket is wide enough to let it
+    // land outside that pair (shallow tangent slopes over a wide bracket can
+    // dodge the plain edge-of-bracket guard above while still landing well
+    // outside onset/endset), the midLine extrapolation has drifted away
+    // from the true local transition. Tolerance is relative to the
+    // onset-endset span itself (not a fixed value) — real files occasionally
+    // place the discrete-index midpoint a hair outside the continuous-line
+    // onset/endset pair, and an overly strict absolute tolerance rejected
+    // those good candidates.
+    //
+    // Originally 0.2x the span; widened to 1.0x because a broad/gradual
+    // sigmoid transition (common on a cooling cycle) can legitimately have
+    // its true half-height midpoint crossing fall outside the narrower
+    // ASTM tangent-derived onset/endset pair — verified this fixes a
+    // gentle-step-with-no-nearby-peak case with zero change to real files.
+    const midTol = (TgOnset !== null && TgEndset !== null) ? 1.0 * Math.abs(TgEndset - TgOnset) : 0.0;
+    const midInRange = (TgOnset !== null && TgEndset !== null
+      && Math.min(TgOnset, TgEndset) - midTol <= Tg && Tg <= Math.max(TgOnset, TgEndset) + midTol);
+    const orderOk = (TgOnset !== null && TgEndset !== null
+      && (TgEndset - TgOnset) > -1e-3 && !atEdge && midInRange);
+    return { Tg, TgOnset, TgEndset, midLine, tgIdx, orderOk, slPre, icPre, slPost, icPost, slopeInf, icInf };
+  }
+
+  // Find the inflection point of a genuine glass-transition STEP, not the
+  // steep flank of a nearby melting or cold-crystallization PEAK. The Tg
+  // search window necessarily overlaps the cold-crystallization window for
+  // PEEK (both span roughly 125-220 degC by default), and a cold-
+  // crystallization exotherm's rising edge is almost always steeper than the
+  // subtle Cp-step of Tg — so an unguarded argmax(|gradient|) search
+  // reliably locks onto the peak instead of the real transition whenever one
+  // is present in-window, even a peak too weak to pass detectColdCrystArr's
+  // own significance test can still "win" this argmax and get mistaken for
+  // the Tg step.
+  //
+  // Guard against this by rejecting any inflection candidate whose local
+  // segment is not monotonic (isMonotonicStep): a real Tg step is a
+  // one-directional shift between two Cp baselines, while a peak rises and
+  // then reverses most of the way back — that reversal is what tells the
+  // two apart. On rejection, a generous fixed margin around the candidate is
+  // masked out, not just its own narrow flat-to-flat span — a peak's
+  // |gradient| dips back toward zero at its own apex (the derivative of a
+  // local max/min is zero), so a gradient-threshold-based span can
+  // under-shoot a tall, sharp peak's true extent and let the search stall,
+  // cycling around the same peak's flanks for many attempts without making
+  // real progress past it. The search keeps looking until it finds a
+  // genuine, validated step or gives up (returns null) rather than silently
+  // reporting a peak-derived pseudo-Tg.
+  // A monotonic-looking segment is necessary but not sufficient — pure
+  // instrument noise can, over a short enough adaptively-chosen window,
+  // drift in one net direction purely by chance (verified: over 40
+  // noise-only trials with no real Tg step present at all, an unconditional
+  // monotonicity test alone still reported a spurious "Tg" more than half
+  // the time). Guard against this with a signal-to-noise floor on the
+  // accepted candidate's own step height: the net HFsm change across
+  // preC..postC must clear a multiple of the point-to-point noise level,
+  // just like the analogous floor added to detectColdCrystArr's prominence
+  // test.
+  //
+  // That multiple was originally 8x, chosen only against smooth,
+  // comparatively large synthetic steps. Real cooling-cycle Tg steps
+  // commonly have a noticeably smaller net Cp change than the corresponding
+  // heating-cycle step for the same material, and 8x rejected some of these
+  // outright. Lowered to 5x, verified this still keeps the 40-trial
+  // pure-noise false-positive rate at zero while correctly detecting a
+  // synthetic step 1/3 the height used in the original validation.
+  const noiseEst = stdArr(HF.map((v, i) => v - HFsm[i]));
+
+  const gradWork = grad.slice();
+  for (let i = 0; i < lo; i++) gradWork[i] = -Infinity;
+  for (let i = hi; i < n; i++) gradWork[i] = -Infinity;
+  let result = null;
+  const rejectedPeakSpans = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    let cand = -1, bestG = -Infinity;
+    for (let i = lo; i < hi; i++) if (gradWork[i] > bestG) { bestG = gradWork[i]; cand = i; }
+    if (cand === -1 || bestG === -Infinity) break;
+    const [preC, postC] = flatBounds(cand);
+    if (preC >= postC) {
+      for (let i = Math.max(lo, cand - bp); i < Math.min(hi, cand + bp + 1); i++) gradWork[i] = -Infinity;
+      continue;
+    }
+    const netC = Math.abs(HFsm[postC] - HFsm[preC]);
+    const mono = isMonotonicStep(HFsm, preC, postC);
+    const snrOk = netC >= 5.0 * noiseEst;
+    // A later "step" candidate whose own [preC, postC] bracket substantially
+    // overlaps a previously-rejected genuine PEAK's own bracket is suspect —
+    // most likely it is just a different bound or fragment of that SAME
+    // large, non-monotonic feature (e.g. its descending tail), not an
+    // independent, genuine Cp-step, regardless of how its own netC compares
+    // in magnitude.
+    const candSpan = postC - preC;
+    let scaleOk = true;
+    for (const [rpPre, rpPost] of rejectedPeakSpans) {
+      const overlap = Math.max(0, Math.min(postC, rpPost) - Math.max(preC, rpPre));
+      if (candSpan > 0 && overlap / candSpan > 0.2) { scaleOk = false; break; }
+    }
+    if (!mono) {
+      // Before giving up on this candidate, check whether the reason it
+      // failed monotonicity is a narrow, clearly instrumental level-shift
+      // (see findLevelShiftSpan above) rather than a genuine competing
+      // peak. If so, splice it out of a COPY of the input series (drop the
+      // few contaminated points, then shift everything past the
+      // discontinuity by a constant offset so the two clean sides join up
+      // continuously) and re-run the full analysis once on that repaired
+      // series. allowRescue=false on the recursive call caps this at a
+      // single retry — this only ever fires on a bracket that would
+      // otherwise be discarded outright, so it can only turn a null/wrong
+      // result into a verified one, never override an already-accepted
+      // candidate from earlier in this same search.
+      if (allowRescue && scaleOk) {
+        const spike = findLevelShiftSpan(HF, preC, postC, 0.2, 2);
+        if (spike) {
+          const [slPreR, icPreR] = fitLine(T.slice(preC, spike.jStartIdx + 1), HF.slice(preC, spike.jStartIdx + 1));
+          const [slPostR, icPostR] = fitLine(T.slice(spike.jEndIdx, postC + 1), HF.slice(spike.jEndIdx, postC + 1));
+          const TjStart = T[spike.jStartIdx], TjEnd = T[spike.jEndIdx];
+          const Tmid = (TjStart + TjEnd) / 2;
+          const offset = (slPostR * Tmid + icPostR) - (slPreR * Tmid + icPreR);
+          const newTemp = [], newHF = [];
+          for (let ii = 0; ii < temperature.length; ii++) {
+            const tv2 = temperature[ii];
+            if (tv2 > TjStart && tv2 < TjEnd) continue;
+            newTemp.push(tv2);
+            newHF.push(tv2 >= TjEnd ? heatFlow[ii] - offset : heatFlow[ii]);
+          }
+          const rescued = tgAnalysisArr(newTemp, newHF, tgMin, tgMax, false);
+          if (rescued) return rescued;
+        }
+      }
+      rejectedPeakSpans.push([preC, postC]);
+    }
+    if (mono && snrOk && scaleOk) {
+      const tv = tentativeTg(cand, preC, postC, rejectedPeakSpans);
+      if (tv.orderOk) { result = Object.assign({ preC, postC }, tv); break; }
+    }
+    for (let i = Math.max(lo, cand - bp); i < Math.min(hi, cand + bp + 1); i++) gradWork[i] = -Infinity;
+  }
+  if (result === null) return null;
+
+  const { TgOnset, TgEndset, midLine, tgIdx, slPre, icPre, slPost, icPost, slopeInf, icInf } = result;
+  // ASTM E1356 tangent-construction segments, trimmed to the classic
+  // three-line figure: an extrapolated pre-transition baseline running from
+  // the start of the analyzed window up to the onset (T1), a straight
+  // tangent line through the inflection point spanning T1->T2 (the segment
+  // where the curve departs from both baselines), and an extrapolated
+  // post-transition baseline running from the endset (T2) to the end of the
+  // window. Falls back to the fit-window boundaries when the true
+  // onset/endset intersection is undefined or out of range, so a
+  // construction is always drawable even in degenerate cases.
+  const xOnset = TgOnset !== null ? TgOnset : T[result.preC];
+  const xEndset = TgEndset !== null ? TgEndset : T[result.postC];
+  const preSegX = [T[0], xOnset];
+  const preSegY = preSegX.map(x => slPre * x + icPre);
+  const postSegX = [xEndset, T[n - 1]];
+  const postSegY = postSegX.map(x => slPost * x + icPost);
+  let tanX0 = xOnset, tanX1 = xEndset;
+  if (tanX0 > tanX1) { const tmp = tanX0; tanX0 = tanX1; tanX1 = tmp; }
+  const tanSegX = [tanX0, tanX1];
+  const tanSegY = tanSegX.map(x => slopeInf * x + icInf);
+  return {
+    Tg: T[tgIdx], TgOnset, TgEndset, Tregion: T, HFsm,
+    Tpretan: preSegX, HFpretan: preSegY,
+    Tinftan: tanSegX, HFinftan: tanSegY,
+    Tposttan: postSegX, HFposttan: postSegY,
+    Tmidline: T, HFmidline: midLine, TgY: HFsm[tgIdx],
+  };
+}
+// Peak-temperature search for DSC Tm / Tc, made to work exactly like the TGA
+// auto-detection (findSingleInterpolatedTmaxAuto): scipy/JS findPeaks
+// directly on the RAW, unsmoothed signal (no Savitzky-Golay smoothing, no
+// sigmoidal/straight-line baseline subtraction whatsoever) inside the
+// configured window, ranked by prominence, with a plain global-extremum
+// fallback when nothing clears the prominence bar — the same shape as
+// findSingleInterpolatedTmaxAuto's own find_peaks(-D, prominence=std(D)*0.3)
+// + argmin fallback. Sign-agnostic (tries both the raw signal and its
+// negation) since a Tm/Tc excursion can appear as either a rise or a dip
+// depending on the instrument's heat-flow sign convention — mirrors the
+// sign handling the previous baseline-corrected version already had.
+// NOTE: this only locates the peak's TEMPERATURE. ΔH (enthalpy) is a
+// physically different quantity — literally the integrated area between
+// the curve and a baseline — and still requires a real baseline
+// (enthalpyLinearZone); that integration is untouched by this change.
+function dscPeakTempArr(temperature, heatFlowNorm, tMin, tMax) {
+  const idx = [];
+  for (let i = 0; i < temperature.length; i++) if (temperature[i] >= tMin && temperature[i] <= tMax) idx.push(i);
+  if (idx.length < 5) return null;
+  idx.sort((a, b) => temperature[a] - temperature[b]);
+  const T = idx.map(i => temperature[i]), HF = idx.map(i => heatFlowNorm[i]);
+  const std = stdArr(HF);
+  if (std === 0) return null;
+  const minProm = std * 0.3;
+  let piBest = null, bestProm = 0;
+  for (const sig of [HF, HF.map(v => -v)]) {
+    const { indices, prominences } = findPeaks(sig, { prominence: minProm });
+    if (indices.length > 0) {
+      let bi = 0; for (let i = 1; i < prominences.length; i++) if (prominences[i] > prominences[bi]) bi = i;
+      if (prominences[bi] > bestProm) { bestProm = prominences[bi]; piBest = indices[bi]; }
+    }
+  }
+  if (piBest === null) {
+    // Fallback: plain global extremum — furthest raw deviation from the
+    // window's own first sample (the pre-event value), no regression or
+    // smoothing involved — mirrors TGA's plain global-argmin fallback.
+    let best = 0, bestAbs = -Infinity;
+    for (let i = 0; i < T.length; i++) { const a = Math.abs(HF[i] - HF[0]); if (a > bestAbs) { bestAbs = a; best = i; } }
+    piBest = best;
+  }
+  return T[piBest];
+}
+function tmArr(temperature, heatFlowNorm, tMin, tMax) {
+  return dscPeakTempArr(temperature, heatFlowNorm, tMin, tMax);
+}
+// DSC enthalpy integration baseline — progress-variable (Cp-step) method.
+// Matches the sigmoidal integration baseline used by TA Instruments TRIOS
+// and Mettler-Toledo STARe. Port of Python's _dsc_baseline: anchors a
+// preliminary reference line on the first 20% of points (always in the
+// pre-event baseline), locates onset/endset as the first/last point
+// deviating by more than 8% of the peak amplitude from that reference,
+// and — when a valid post-event region is available (post-slope not more
+// than 20x steeper than pre-slope) — blends pre/post tangent lines via a
+// cumulative-integral progress variable F(T) in [0,1]. Falls back to the
+// pre-slope extrapolated across the window ("tangent-drop") when no valid
+// post-event region exists (e.g. the event runs to the window edge).
+function dscBaseline(T, HFsm) {
+  const n = T.length;
+  if (n < 6) return linspace(HFsm[0], HFsm[n - 1], n);
+
+  const nPreInit = Math.max(3, Math.floor(0.20 * n));
+  const [slopePreInit, icPreInit] = fitLine(T.slice(0, nPreInit), HFsm.slice(0, nPreInit));
+  const prelimPre = T.map(v => slopePreInit * v + icPreInit);
+
+  const dev = HFsm.map((v, i) => v - prelimPre[i]);
+  const devAbs = dev.map(Math.abs);
+  const peakDev = Math.max(...devAbs);
+  if (peakDev < 1e-8) return prelimPre;
+
+  const threshold = 0.08 * peakDev;
+
+  let onsetIdx = Math.floor(n / 4);
+  for (let i = 0; i < Math.floor(n / 2); i++) {
+    if (devAbs[i] > threshold) { onsetIdx = Math.max(1, i); break; }
+  }
+
+  let endsetIdx = Math.floor(3 * n / 4);
+  for (let i = n - 1; i > Math.floor(n / 2); i--) {
+    if (devAbs[i] > threshold) { endsetIdx = Math.min(n - 2, i); break; }
+  }
+
+  let preLine, preSlope;
+  if (onsetIdx >= 3) {
+    const [slopePre, icPre] = fitLine(T.slice(0, onsetIdx), HFsm.slice(0, onsetIdx));
+    preLine = T.map(v => slopePre * v + icPre);
+    preSlope = Math.abs(slopePre);
+  } else {
+    preLine = prelimPre;
+    preSlope = Math.abs(slopePreInit);
+  }
+
+  const postStart = endsetIdx + 1;
+  const nPost = n - postStart;
+  let useTwoSided = false, postLine = null;
+
+  if (nPost >= 3) {
+    const [slopePost, icPost] = fitLine(T.slice(postStart), HFsm.slice(postStart));
+    const postSlope = Math.abs(slopePost);
+    const slopeRef = Math.max(preSlope, 1e-6);
+    if (postSlope <= 20.0 * slopeRef) {
+      postLine = T.map(v => slopePost * v + icPost);
+      useTwoSided = true;
+    }
+  }
+
+  if (!useTwoSided) return preLine;
+
+  const prelim2 = linspace(preLine[0], postLine[postLine.length - 1], n);
+  const integrand = HFsm.map((v, i) => v - prelim2[i]);
+  const partial = [0];
+  for (let i = 1; i < n; i++) {
+    const dT = T[i] - T[i - 1];
+    partial.push(partial[i - 1] + 0.5 * (integrand[i - 1] + integrand[i]) * dT);
+  }
+  const total = partial[n - 1];
+  if (Math.abs(total) < 1e-10) return prelim2;
+
+  const F = partial.map(p => Math.min(Math.max(p / total, 0.0), 1.0));
+  return preLine.map((v, i) => (1 - F[i]) * v + F[i] * postLine[i]);
+}
+// Detect and integrate a cold-crystallization exotherm (if present).
+// Restored to the original method (the sigmoidal Cp-step progress-variable
+// baseline, dscBaseline above) rather than a plain straight-line baseline.
+// What changed is sensitivity, tuned up in two ways so real peaks stop
+// getting missed:
+//  1. Prominence is measured against the range of the baseline-corrected
+//     deviation itself (corr = HFsm - dscBaseline(...)), not the raw
+//     signal's total range — the latter could be dominated by an unrelated
+//     baseline slope or a nearby melting peak bleeding into the window,
+//     silently inflating the prominence bar far above what a real
+//     cold-crystallization exotherm could ever clear.
+//  2. The old hard "must sit strictly inside 5-95% of the window" position
+//     rule is dropped: findPeaks already cannot select the literal
+//     first/last sample as a peak (needs a fall on both sides), so that
+//     rule only discarded genuine peaks sitting anywhere in the outer 10%
+//     of the window without adding real protection against edge artefacts.
+// The old fixed dHcc >= 0.5 J/g floor was tried as a noise guard but was
+// itself too blunt (discarded small-but-real peaks in genuinely
+// degraded/quenched material). In its place, prominence must ALSO clear a
+// multiple of the window's own noise level (noiseEst/minProm below) — a
+// signal-to-noise criterion instead of an arbitrary absolute enthalpy
+// cutoff, so it scales with how noisy this particular scan actually is.
+// The noise-based multiplier (30x below, raised from an initial 4x->8x) was
+// tuned up after finding real 2nd-heating PEEK DSC scans where a ~0.01 J/g
+// "cold-crystallization" was being reported on a window that, by eye, has no
+// discernible feature — just a very gently curving baseline the sigmoidal
+// fit doesn't reproduce to the last decimal. In that real data the winning
+// "peak"'s prominence was only ~25x the point-to-point noise level, versus
+// >100x for every confirmed-genuine detection checked (up to several
+// thousand x for an obvious, large exotherm) — 30x sits comfortably between
+// "real" and "noise-floor artefact" without touching any genuine detection.
+// noiseFrac (relative-to-range threshold) was briefly raised from its
+// original 12% to 20% alongside the multiplier change above, but that was an
+// over-correction: it also suppressed a real, small 1st-heating peak
+// (~0.26 J/g, prominence ~139x the noise floor) that must stay detected.
+// noiseFrac was reverted to 12%; the noise-based multiplier alone (30x) is
+// enough to reject the known 2nd-heating false positives without discarding
+// that genuine small peak.
+// Still requires findPeaks to find a genuine local peak (rise-then-fall —
+// a monotonic Tg step is automatically excluded) in either polarity: this
+// is a detector, not an unconditional area-under-the-window calculation.
+// Only the detected peak's own lobe is integrated (curve clipped to the
+// peak's polarity), not the whole window.
+// `time` (optional): per-point acquisition time in minutes, aligned 1:1 with
+// temperature/heatFlowNorm. When supplied, dHcc is integrated against real
+// elapsed time (seconds) instead of Temperature.
+function detectColdCrystArr(temperature, heatFlowNorm, tMin, tMax, noiseFrac = 0.12, time = null) {
+  const idx = [];
+  for (let i = 0; i < temperature.length; i++) if (temperature[i] >= tMin && temperature[i] <= tMax) idx.push(i);
+  if (idx.length < 10) return { Tcc: null, dHcc: null };
+  idx.sort((a, b) => temperature[a] - temperature[b]);
+  const T = idx.map(i => temperature[i]), HF = idx.map(i => heatFlowNorm[i]);
+  const timeZ = time ? idx.map(i => time[i]) : null;
+  const HFsm = sgSmoothArr(HF);
+  const base = dscBaseline(T, HFsm);
+  const corr = HFsm.map((v, i) => v - base[i]);
+  const rng = ptp(HFsm);
+  if (rng < 0.03) return { Tcc: null, dHcc: null };
+  const corrRng = ptp(corr);
+  if (corrRng < 1e-8) return { Tcc: null, dHcc: null };
+  // Absolute noise floor, independent of the window's overall corrected
+  // range. A purely relative threshold (% of corrRng) has a blind spot:
+  // whenever the window is nearly flat (corrRng itself small — no real
+  // thermal event, just instrument noise riding on the baseline), a fraction
+  // of that tiny range is itself tiny, so an ordinary noise wiggle can still
+  // clear it and get reported as a "detected" cold-crystallization — this
+  // was verified happening in practice. noiseEst is the residual between
+  // the raw and SG-smoothed signal, i.e. the actual point-to-point
+  // instrument/sampling noise level in this window. Requiring the winning
+  // peak's prominence to also clear a multiple of that noise floor (a
+  // signal-to-noise criterion) filters out noise-only "detections" while
+  // leaving small-but-genuine exotherms — whose prominence sits well above
+  // the noise floor — untouched.
+  const noiseEst = stdArr(HF.map((v, i) => v - HFsm[i]));
+  const minProm = Math.max(noiseFrac * corrRng, 30.0 * noiseEst);
+  let piBest = null, bestProm = 0;
+  for (const sig of [corr, corr.map(v => -v)]) {
+    const { indices, prominences } = findPeaks(sig, { prominence: minProm });
+    if (indices.length > 0) {
+      let bi = 0; for (let i = 1; i < prominences.length; i++) if (prominences[i] > prominences[bi]) bi = i;
+      if (prominences[bi] > bestProm) { bestProm = prominences[bi]; piBest = indices[bi]; }
+    }
+  }
+  if (piBest === null) return { Tcc: null, dHcc: null };
+  const Tcc = T[piBest];
+  const sign = corr[piBest] >= 0 ? 1 : -1;
+  const exo = corr.map(v => Math.max(v * sign, 0));
+  let dHcc;
+  if (timeZ) {
+    const tS = timeZ.map(v => v * 60.0);
+    const order = tS.map((_, i) => i).sort((a, b) => tS[a] - tS[b]);
+    dHcc = Math.abs(trapz(order.map(i => exo[i]), order.map(i => tS[i])));
+  } else {
+    dHcc = Math.abs(trapz(exo, T));
+  }
+  return { Tcc, dHcc };
+}
+function analyzeDscSpecimenBounds(h1, cool, h2, fusL, fusR, coolL, coolR, ccL, ccR, tgL, tgR, deltaH100Jg) {
+  function heatCycle(cycle) {
+    const order = cycle.T.map((_, i) => i).sort((a, b) => cycle.T[a] - cycle.T[b]);
+    const T = order.map(i => cycle.T[i]), HF = order.map(i => cycle.HF[i]);
+    const Time = cycle.time ? order.map(i => cycle.time[i]) : null;
+    const tgD = tgAnalysisArr(T, HF, tgL, tgR);
+    const Tg = tgD ? tgD.Tg : null, TgOnset = tgD ? tgD.TgOnset : null;
+    const Tm = tmArr(T, HF, fusL, fusR);
+    const fusD = enthalpyLinearZone(T, HF, fusL, fusR, Time);
+    const dHfus = fusD.dH;
+    const { Tcc, dHcc } = detectColdCrystArr(T, HF, ccL, ccR, 0.12, Time);
+    const dHccV = dHcc !== null ? dHcc : 0.0;
+    const Xc = Math.max(0.0, ((dHfus - dHccV) / deltaH100Jg) * 100.0);
+    // ccZone is a straight-line baseline over the same window — used only
+    // for plotting a simple fill, independent of detectColdCrystArr's own
+    // (sigmoidal) baseline, and drawn regardless of whether a credible
+    // cold-cryst. peak was actually detected.
+    const ccZone = enthalpyLinearZone(T, HF, ccL, ccR, Time);
+    return { Tg, TgOnset, Tm, dHfusion: dHfus, Tcc, dHcc, Xc, T, HF, tgData: tgD, fusData: fusD, ccZone };
+  }
+  const orderC = cool.T.map((_, i) => i).sort((a, b) => cool.T[a] - cool.T[b]);
+  const Tc_ = orderC.map(i => cool.T[i]), HFc = orderC.map(i => cool.HF[i]);
+  const TimeC = cool.time ? orderC.map(i => cool.time[i]) : null;
+  // Tc's TEMPERATURE is now located directly on the raw cooling heat flow
+  // (dscPeakTempArr — same TGA-style find_peaks/prominence approach as Tm,
+  // no smoothing or baseline). dHc (ΔHc, the enthalpy) is a different
+  // quantity — the integrated area between the curve and a baseline — and
+  // still comes from enthalpyLinearZone's own straight-line-baseline
+  // integration, which is unaffected by this change.
+  const coolZone = enthalpyLinearZone(Tc_, HFc, coolL, coolR, TimeC);
+  let Tc = null, dHc = null;
+  if (coolZone.Tzone.length >= 4) {
+    Tc = dscPeakTempArr(Tc_, HFc, coolL, coolR);
+    dHc = coolZone.dH;
+  }
+  const tgCoolData = tgAnalysisArr(Tc_, HFc, tgL, tgR);
+  const TgCool = tgCoolData ? tgCoolData.Tg : null, TgCoolOnset = tgCoolData ? tgCoolData.TgOnset : null;
+  const heat1 = heatCycle(h1), heat2 = heatCycle(h2);
+  const cool_ = { Tc, dHcrystallization: dHc, Tg: TgCool, TgOnset: TgCoolOnset, T: Tc_, HF: HFc, coolZone, tgData: tgCoolData };
+  return { heat1, heat2, cool: cool_ };
+}
+
+/* ---- TPU DSC (single-ramp): Tg midpoint, fusion ΔH, Tm ---- */
+function normalizeHeatFlow(HF, massMg, alreadyNormalized) {
+  if (alreadyNormalized) return HF.slice();
+  if (!(massMg > 0)) throw new Error("Mass must be greater than zero when heat flow is not normalized.");
+  const massG = massMg / 1000.0;
+  return HF.map(v => v / massG);
+}
+function calculateTgMidpointTpu(T, HFnorm, tgMin, tgMax) {
+  const d = tgAnalysisArr(T, HFnorm, tgMin, tgMax);
+  if (!d) throw new Error("Insufficient DSC data to compute the Tg midpoint.");
+  return d.Tg;
+}
+function calculateFusionDeltaHTpu(T, HFnorm, fusionMin, fusionMax, time = null) {
+  const zone = enthalpyLinearZone(T, HFnorm, fusionMin, fusionMax, time);
+  if (zone.Tzone.length < 4) throw new Error("Insufficient DSC data in the fusion window.");
+  return zone.dH;
+}
+function calculateTmTpu(T, HFnorm, tmMin, tmMax) {
+  const Tm = dscPeakTempArr(T, HFnorm, tmMin, tmMax);
+  if (Tm === null) throw new Error("Insufficient DSC data in the Tm window.");
+  return Tm;
+}
+// Crystallization on the COOLING cycle — Tc's TEMPERATURE now uses the same
+// raw, unsmoothed, no-baseline find_peaks search as PEEK's Tc (mirrors TGA's
+// own auto-detection). ΔHc is a different, physically distinct quantity
+// (integrated area between the curve and a baseline) and still comes from
+// enthalpyLinearZone's own straight-line-baseline integration, unaffected
+// by this change — so TPU keeps the same Fusion / Tg / Crystallization zone
+// set as PEEK.
+function calculateCrystallizationTpu(T, HFnorm, crystMin, crystMax, time = null) {
+  const order = T.map((_, i) => i).sort((a, b) => T[a] - T[b]);
+  const Ts = order.map(i => T[i]), HFs = order.map(i => HFnorm[i]);
+  const Times = time ? order.map(i => time[i]) : null;
+  const zone = enthalpyLinearZone(Ts, HFs, crystMin, crystMax, Times);
+  if (zone.Tzone.length < 4) throw new Error("Insufficient DSC data in the crystallization window.");
+  const Tc = dscPeakTempArr(Ts, HFs, crystMin, crystMax);
+  return { Tc, dHc: zone.dH, zone };
+}
+
+/* ============================= FORMATTING HELPERS ============================= */
+
+function fmtTemp(v) { return (v === null || v === undefined || Number.isNaN(v)) ? "n.d." : `${v.toFixed(1)} °C`; }
+function fmtDh(v) { return (v === null || v === undefined || Number.isNaN(v)) ? "n.d." : `${v.toFixed(2)} J/g`; }
+function fmtPct(v) { return (v === null || v === undefined || Number.isNaN(v)) ? "n.d." : `${v.toFixed(1)} %`; }
+function relDiffPct(a, b) {
+  if (a === null || b === null || a === undefined || b === undefined || Number.isNaN(a) || Number.isNaN(b) || a === 0) return "—";
+  const d = ((b - a) / Math.abs(a)) * 100.0;
+  return `${d >= 0 ? "+" : ""}${d.toFixed(1)} %`;
+}
+function badgeHtml(decision) {
+  const cls = decision === "ACCEPTABLE" ? "acceptable" : decision === "RE-EXAMINE" ? "reexamine" : decision === "NOT ACCEPTABLE" ? "not-acceptable" : "na";
+  return `<span class="badge ${cls}">${decision}</span>`;
+}
+function tableHtml(title, rows) {
+  // rows: array of {section:true,label} or {param, def, ref, evl, delta}
+  let html = `<table class="result-table"><thead><tr><th>Parameter</th><th>Definition</th><th>Reference</th><th>Evaluated</th><th>&Delta;</th></tr></thead><tbody>`;
+  for (const r of rows) {
+    if (r.section) html += `<tr class="section-row"><td colspan="5">${r.label}</td></tr>`;
+    else html += `<tr><td>${r.param}</td><td>${r.def}</td><td>${r.ref}</td><td>${r.evl}</td><td>${r.delta}</td></tr>`;
+  }
+  html += `</tbody></table>`;
+  return html;
+}
+function resultBlock(title, innerHtml) {
+  return `<div class="result-block"><h1>${title}</h1>${innerHtml}</div>`;
+}
+
+/* ============================= UI STATE / WIRING ============================= */
+
+const PEEK_DEFAULTS = {
+  band1Upper: 1265, band1Lower: 1120, band2Upper: 1520, band2Lower: 1430,
+  tgMin: 125, tgMax: 200, fusionMin: 255, fusionMax: 375,
+  crystMin: 250, crystMax: 350, coldCrystMin: 160, coldCrystMax: 220,
+  deltaH100: 130.0, tgaFocusMin: 515, tgaFocusMax: 585,
+};
+const TPU_DEFAULTS = {
+  band1Upper: 1570, band1Lower: 1485, band2Upper: 1425, band2Lower: 1400,
+  tgMin: -60, tgMax: -20, fusionMin: 145, fusionMax: 245,
+  // Crystallization (cooling cycle) — the exotherm typically sits below the
+  // melting peak due to supercooling; verified against real TPU cooling
+  // curves to land inside this window.
+  crystMin: 75, crystMax: 190,
+  tgaStage1Min: 250, tgaStage1Max: 380, tgaStage2Min: 380, tgaStage2Max: 520,
+};
+
+function currentMaterial() {
+  return document.querySelector('input[name="material"]:checked').value;
+}
+
+function applyMaterialDefaults() {
+  const mat = currentMaterial();
+  const d = mat === "PEEK" ? PEEK_DEFAULTS : TPU_DEFAULTS;
+  document.getElementById("band1Upper").value = d.band1Upper;
+  document.getElementById("band1Lower").value = d.band1Lower;
+  document.getElementById("band2Upper").value = d.band2Upper;
+  document.getElementById("band2Lower").value = d.band2Lower;
+  document.getElementById("dscPeekSection").classList.toggle("hidden", mat !== "PEEK");
+  document.getElementById("dscTpuSection").classList.toggle("hidden", mat !== "TPU");
+  document.getElementById("labelPeek").classList.toggle("active", mat === "PEEK");
+  document.getElementById("labelTpu").classList.toggle("active", mat === "TPU");
+  // Explains what each band physically represents for the selected material —
+  // added after a real mix-up where PEEK's Band 2 window (1520-1430 cm-1) was
+  // left in place while evaluating TPU spectra: that window has no absorption
+  // feature in TPU's spectrum (it's PEEK-specific), so the integrated area came
+  // out to zero and the node failed with a "denominator band area is zero"
+  // error. The generic "Band 1 / Band 2" labels alone gave no hint that the
+  // two materials need different, non-interchangeable windows.
+  const note = document.getElementById("ftirBandNote");
+  if (note) {
+    note.textContent = mat === "PEEK"
+      ? `Band 1 (${d.band1Upper}–${d.band1Lower} cm⁻¹): degradation region. Band 2 (${d.band2Upper}–${d.band2Lower} cm⁻¹): stable aromatic reference band. These windows are specific to PEEK's chemistry.`
+      : `Band 1 (${d.band1Upper}–${d.band1Lower} cm⁻¹): Amide II degradation region. Band 2 (${d.band2Upper}–${d.band2Lower} cm⁻¹): stable aromatic reference band. These windows are specific to TPU's chemistry — do not reuse PEEK's Band 2 (1520–1430 cm⁻¹) here, it has no absorption feature in TPU spectra.`;
+  }
+}
+
+function readExcelWorkbook(fileInput) {
+  return new Promise((resolve, reject) => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) { reject(new Error("No file was provided.")); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
+        resolve(wb);
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error("Could not read the file."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+function sheetRawRows(wb, sheetName) {
+  return XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: "" });
+}
+async function readExcelFile(fileInput) {
+  const wb = await readExcelWorkbook(fileInput);
+  return sheetRawRows(wb, wb.SheetNames[0]);
+}
+// TPU DSC exports use the same layout as PEEK's: a single sheet with THREE
+// side-by-side column blocks (1st Heating / Cooling / 2nd Heating), each
+// separated by a blank spacer column — confirmed against real TPU DSC files.
+// Reading it with the generic single-curve parser silently grabs only
+// whichever columns happen to match first (in practice the 1st Heating
+// block, since it's leftmost), discarding the Cooling and 2nd Heating data
+// entirely. Reuse the same three-cycle reader already used for PEEK.
+async function readDscTpuCycles(fileInput) {
+  const raw = await readExcelFile(fileInput);
+  return readDscThreeCyclesRaw(raw);
+}
+
+function manualOr(manual, calculated) {
+  return (manual !== null && manual !== undefined && !Number.isNaN(manual) && manual !== 0) ? manual : calculated;
+}
+
+const PLOTLY_COLORS = ["#2166AC", "#D6604D", "#35978F", "#B2182B", "#4DAC26", "#5E3C99", "#E08214", "#878787"];
+
+function plotlyLayoutBase(title, xTitle, yTitle) {
+  return {
+    title: { text: title, font: { size: 15, family: "Inter, Helvetica Neue, Arial, sans-serif", color: "#1a2e4a" }, x: 0.04, xanchor: "left" },
+    xaxis: { title: xTitle, showgrid: true, gridcolor: "#e8edf2", showline: true, linewidth: 1, linecolor: "#b0b8c8", mirror: true, ticks: "outside" },
+    yaxis: { title: yTitle, showgrid: true, gridcolor: "#e8edf2", showline: true, linewidth: 1, linecolor: "#b0b8c8", mirror: true, ticks: "outside" },
+    plot_bgcolor: "#ffffff", paper_bgcolor: "#ffffff",
+    font: { family: "Inter, Helvetica Neue, Arial, sans-serif", size: 12, color: "#2d3748" },
+    legend: { orientation: "h", yanchor: "bottom", y: -0.28, xanchor: "center", x: 0.5, font: { size: 11 } },
+    margin: { l: 60, r: 30, t: 50, b: 90 },
+  };
+}
+const PLOTLY_CONFIG = { responsive: true, scrollZoom: true, displaylogo: false };
+
+/* ============================= PLOTTING ============================= */
+
+function plotFtir(divId, ref, samp, band1Upper, band1Lower, band2Upper, band2Lower, title) {
+  const band1Ref = applyFtirLocalBaseline(ref.cm1, ref.pctT, band1Upper, band1Lower);
+  const band1Samp = applyFtirLocalBaseline(samp.cm1, samp.pctT, band1Upper, band1Lower);
+  const band2Ref = applyFtirLocalBaseline(ref.cm1, ref.pctT, band2Upper, band2Lower);
+  const band2Samp = applyFtirLocalBaseline(samp.cm1, samp.pctT, band2Upper, band2Lower);
+
+  const traces = [
+    { x: ref.cm1, y: ref.pctT, name: "Reference material", xaxis: "x", yaxis: "y", line: { color: PLOTLY_COLORS[0], width: 1.3 }, legendgroup: "full" },
+    { x: samp.cm1, y: samp.pctT, name: "Evaluated specimen", xaxis: "x", yaxis: "y", line: { color: PLOTLY_COLORS[1], width: 1.3 }, legendgroup: "full" },
+    { x: band1Ref.x, y: band1Ref.pctTCorrected, name: "Reference material", xaxis: "x2", yaxis: "y2", line: { color: PLOTLY_COLORS[0], width: 1.4 }, legendgroup: "band", showlegend: false },
+    { x: band1Samp.x, y: band1Samp.pctTCorrected, name: "Evaluated specimen", xaxis: "x2", yaxis: "y2", line: { color: PLOTLY_COLORS[1], width: 1.4 }, legendgroup: "band", showlegend: false },
+    { x: band1Ref.x, y: band1Ref.x.map(() => 100), name: "100 %T", xaxis: "x2", yaxis: "y2", line: { color: "grey", dash: "dash", width: 1 }, showlegend: false },
+    { x: band2Ref.x, y: band2Ref.pctTCorrected, name: "Reference material", xaxis: "x3", yaxis: "y3", line: { color: PLOTLY_COLORS[0], width: 1.4 }, legendgroup: "band2", showlegend: false },
+    { x: band2Samp.x, y: band2Samp.pctTCorrected, name: "Evaluated specimen", xaxis: "x3", yaxis: "y3", line: { color: PLOTLY_COLORS[1], width: 1.4 }, legendgroup: "band2", showlegend: false },
+    { x: band2Ref.x, y: band2Ref.x.map(() => 100), name: "100 %T", xaxis: "x3", yaxis: "y3", line: { color: "grey", dash: "dash", width: 1 }, showlegend: false },
+  ];
+
+  // Manual domains (no `grid` property — mixing grid-based auto-layout with
+  // explicit per-axis domains causes the subplots to overlap instead of
+  // stacking). Full spectrum on top, full width; corrected bands below,
+  // side by side.
+  const layout = {
+    title: { text: title, font: { size: 16, family: "Inter, Segoe UI, sans-serif" } },
+    xaxis: { title: "Wavenumber (cm⁻¹)", autorange: "reversed", domain: [0, 1] },
+    yaxis: { title: "Transmittance (%)", domain: [0.60, 1] },
+    xaxis2: { title: "Wavenumber (cm⁻¹)", autorange: "reversed", domain: [0, 0.46] },
+    yaxis2: { title: "Corrected %T", domain: [0, 0.42] },
+    xaxis3: { title: "Wavenumber (cm⁻¹)", autorange: "reversed", domain: [0.54, 1], anchor: "y3" },
+    yaxis3: { title: "Corrected %T", domain: [0, 0.42], anchor: "x3" },
+    plot_bgcolor: "#ffffff", paper_bgcolor: "#ffffff",
+    font: { family: "Inter, Segoe UI, sans-serif", size: 12 },
+    height: 820,
+    legend: { orientation: "h", yanchor: "bottom", y: -0.08, xanchor: "center", x: 0.5 },
+    margin: { l: 60, r: 30, t: 60, b: 50 },
+    annotations: [
+      { text: "Full spectrum", x: 0.5, xref: "x domain", y: 1.08, yref: "y domain", showarrow: false, font: { size: 12, color: "#1a2e4a" } },
+      { text: `Corrected Band 1  (${band1Upper}–${band1Lower} cm⁻¹)`, x: 0.5, xref: "x2 domain", y: 1.12, yref: "y2 domain", showarrow: false, font: { size: 11, color: "#1a2e4a" } },
+      { text: `Corrected Band 2  (${band2Upper}–${band2Lower} cm⁻¹)`, x: 0.5, xref: "x3 domain", y: 1.12, yref: "y3 domain", showarrow: false, font: { size: 11, color: "#1a2e4a" } },
+    ],
+    shapes: [
+      { type: "rect", xref: "x", yref: "y domain", x0: Math.min(band1Upper, band1Lower), x1: Math.max(band1Upper, band1Lower), y0: 0, y1: 1, fillcolor: PLOTLY_COLORS[2], opacity: 0.12, line: { width: 0 } },
+      { type: "rect", xref: "x", yref: "y domain", x0: Math.min(band2Upper, band2Lower), x1: Math.max(band2Upper, band2Lower), y0: 0, y1: 1, fillcolor: PLOTLY_COLORS[3], opacity: 0.12, line: { width: 0 } },
+    ],
+  };
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+
+function plotTga(divId, ref, samp, tmaxPairs, title) {
+  const traces = [
+    { x: ref.T, y: ref.dWdT, name: "Reference dW/dT (SG)", yaxis: "y", line: { color: PLOTLY_COLORS[0], width: 1.8 } },
+    { x: samp.T, y: samp.dWdT, name: "Evaluated dW/dT (SG)", yaxis: "y", line: { color: PLOTLY_COLORS[1], width: 1.8 } },
+    { x: ref.Torig, y: ref.Worig, name: "Reference W%", yaxis: "y2", line: { color: PLOTLY_COLORS[0], width: 1.2 }, opacity: 0.55 },
+    { x: samp.Torig, y: samp.Worig, name: "Evaluated W%", yaxis: "y2", line: { color: PLOTLY_COLORS[1], width: 1.2 }, opacity: 0.55 },
+  ];
+  const markerColors = [PLOTLY_COLORS[2], PLOTLY_COLORS[3], PLOTLY_COLORS[4], PLOTLY_COLORS[5]];
+  let mk = 0;
+  for (const [label, result] of [["Reference", ref], ["Evaluated", samp]]) {
+    for (const [tKey, dKey] of tmaxPairs) {
+      traces.push({
+        x: [result[tKey]], y: [result[dKey]], mode: "markers+text", yaxis: "y",
+        marker: { size: 10, color: markerColors[mk % markerColors.length], line: { width: 1, color: "black" } },
+        text: [`${label} ${tKey}=${result[tKey].toFixed(1)}°C`], textposition: "top center",
+        name: `${label} ${tKey}: ${result[tKey].toFixed(1)} °C`,
+      });
+      mk++;
+    }
+  }
+  const layout = Object.assign(plotlyLayoutBase(title, "Temperature (°C)", "dW/dT  [%/°C]"), {
+    height: 620,
+    yaxis2: { title: "Weight %", overlaying: "y", side: "right", showgrid: false },
+  });
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+
+function dscCurveTraces(colIdx, h1, cool, h2, colorMain, colorCool, colorH2, showLegend) {
+  return [
+    { x: h1.T, y: h1.HF, name: "1st heating", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color: colorMain, width: 2 }, showlegend: showLegend, legendgroup: "h1" },
+    { x: cool.T, y: cool.HF, name: "Cooling", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color: colorCool, width: 1.5, dash: "dash" }, showlegend: showLegend, legendgroup: "cool" },
+    { x: h2.T, y: h2.HF, name: "2nd heating", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color: colorH2, width: 1.5, dash: "dot" }, showlegend: showLegend, legendgroup: "h2" },
+  ];
+}
+
+const DSC_ZONE_COLORS = { fus: PLOTLY_COLORS[3], cool: PLOTLY_COLORS[4], cc: PLOTLY_COLORS[5], tg: PLOTLY_COLORS[6] };
+
+function dscZoneShapes(colIdx, bounds) {
+  const shapes = [];
+  const add = (l, r, color) => shapes.push({ type: "rect", xref: `x${colIdx}`, yref: `y${colIdx} domain`, x0: l, x1: r, y0: 0, y1: 1, fillcolor: color, opacity: 0.10, line: { width: 0 } });
+  add(bounds.fusL, bounds.fusR, DSC_ZONE_COLORS.fus);
+  add(bounds.coolL, bounds.coolR, DSC_ZONE_COLORS.cool);
+  add(bounds.ccL, bounds.ccR, DSC_ZONE_COLORS.cc);
+  add(bounds.tgL, bounds.tgR, DSC_ZONE_COLORS.tg);
+  return shapes;
+}
+
+/** Dummy (no-data) legend-only traces explaining the shaded zone colors and the
+ *  dashed construction-line styles. Plotly never lists `shapes` in its legend,
+ *  so these proxy traces are the standard workaround. */
+function dscZoneLegendTraces() {
+  const mkZone = (color, name) => ({ x: [null], y: [null], xaxis: "x", yaxis: "y", mode: "markers", marker: { size: 12, symbol: "square", color, opacity: 0.35 }, name, showlegend: true, hoverinfo: "skip" });
+  return [
+    mkZone(DSC_ZONE_COLORS.fus, "Fusion zone"),
+    mkZone(DSC_ZONE_COLORS.cool, "Cooling / crystallization zone"),
+    mkZone(DSC_ZONE_COLORS.cc, "Cold-crystallization zone"),
+    mkZone(DSC_ZONE_COLORS.tg, "Tg region"),
+    { x: [null], y: [null], xaxis: "x", yaxis: "y", mode: "lines", line: { color: "#444444", width: 1.5, dash: "dot" }, name: "Enthalpy baseline", showlegend: true, hoverinfo: "skip" },
+    { x: [null], y: [null], xaxis: "x", yaxis: "y", mode: "lines", line: { color: "#888888", width: 1.5, dash: "dash" }, name: "Tg baseline extrapolation", showlegend: true, hoverinfo: "skip" },
+    { x: [null], y: [null], xaxis: "x", yaxis: "y", mode: "lines", line: { color: DSC_ZONE_COLORS.tg, width: 1.8, dash: "solid" }, name: "Tg inflection tangent (ASTM E1356)", showlegend: true, hoverinfo: "skip" },
+  ];
+}
+
+/** Dashed baseline trace for a linear-baseline enthalpy zone (fusion, cooling,
+ *  or cold-crystallization), drawn from the same Tzone/HFbaseline arrays the
+ *  integration itself used. Returns null when the zone has too little data. */
+function dscBaselineTrace(colIdx, zone) {
+  if (!zone || !zone.Tzone || zone.Tzone.length < 2) return null;
+  return { x: zone.Tzone, y: zone.HFbaseline, xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, mode: "lines", line: { color: "#444444", width: 1.2, dash: "dot" }, showlegend: false, hoverinfo: "skip" };
+}
+
+/** ASTM E1356 pre-transition / post-transition tangent lines for a Tg
+ *  determination, drawn across the analyzed Tg window so their intersection
+ *  visually locates the onset/midpoint construction. */
+function dscTangentTraces(colIdx, tgD) {
+  if (!tgD) return [];
+  const base = { xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, mode: "lines", showlegend: false, hoverinfo: "skip" };
+  const traces = [
+    Object.assign({ x: tgD.Tpretan, y: tgD.HFpretan, line: { color: "#888888", width: 1.3, dash: "dash" } }, base),
+    Object.assign({ x: tgD.Tposttan, y: tgD.HFposttan, line: { color: "#888888", width: 1.3, dash: "dash" } }, base),
+  ];
+  if (tgD.Tinftan && tgD.Tinftan.length === 2) {
+    traces.push(Object.assign({ x: tgD.Tinftan, y: tgD.HFinftan, line: { color: DSC_ZONE_COLORS.tg, width: 1.6, dash: "solid" } }, base));
+  }
+  return traces;
+}
+
+/** Results-figure DSC plot: reference | evaluated, 3 curves each, zone shading,
+ *  linear-baseline construction lines (fusion ×2, cooling, cold-crystallization
+ *  ×2), ASTM E1356 Tg tangent-construction lines for all three Tg determinations
+ *  (1st heating, cooling, 2nd heating), a zone-color legend, and text
+ *  annotations for every computed temperature (Tg₁, Tg-cooling, Tg₂, Tm₁, Tm₂,
+ *  Tc, and Tcc when detected). */
+function plotDscResults(divId, nomRaw, evlRaw, nomAnalysis, evlAnalysis, nomBounds, evlBounds, title) {
+  function cycleTraces(colIdx, analysis) {
+    const t = [];
+    const bl = (zone) => { const tr = dscBaselineTrace(colIdx, zone); if (tr) t.push(tr); };
+    bl(analysis.heat1.fusData);
+    bl(analysis.heat1.ccZone);
+    bl(analysis.cool.coolZone);
+    bl(analysis.heat2.fusData);
+    bl(analysis.heat2.ccZone);
+    t.push(...dscTangentTraces(colIdx, analysis.heat1.tgData));
+    t.push(...dscTangentTraces(colIdx, analysis.cool.tgData));
+    t.push(...dscTangentTraces(colIdx, analysis.heat2.tgData));
+    return t;
+  }
+  const traces = [
+    ...dscCurveTraces(1, nomRaw.heat1, nomRaw.cool, nomRaw.heat2, PLOTLY_COLORS[0], "#9467bd", "#7f7f7f", true),
+    ...dscCurveTraces(2, evlRaw.heat1, evlRaw.cool, evlRaw.heat2, PLOTLY_COLORS[1], "#9467bd", "#7f7f7f", false),
+    ...cycleTraces(1, nomAnalysis),
+    ...cycleTraces(2, evlAnalysis),
+    ...dscZoneLegendTraces(),
+  ];
+  // Nearest-sample lookup so peak-temperature annotations (Tm, Tc, Tcc) can be
+  // anchored at the curve's actual height at that temperature, instead of a
+  // fixed y=0 — otherwise the arrow points at an arbitrary spot on the plot
+  // rather than the peak it's labelling.
+  function curveYAt(T, rawT, rawHF) {
+    if (T === null || T === undefined || Number.isNaN(T) || !rawT || !rawT.length) return 0;
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < rawT.length; i++) { const d = Math.abs(rawT[i] - T); if (d < bestD) { bestD = d; best = i; } }
+    return rawHF[best];
+  }
+  function annotationsFor(colIdx, analysis, raw) {
+    const anns = [];
+    let toggle = 0;
+    const add = (T, y, text, color) => {
+      if (T === null || T === undefined || Number.isNaN(T)) return;
+      toggle++;
+      const ay = toggle % 2 === 0 ? -36 : -16;
+      anns.push({ x: T, y: y || 0, xref: `x${colIdx}`, yref: `y${colIdx}`, text, showarrow: true, arrowhead: 2, arrowsize: 0.8, ax: 0, ay, font: { size: 9, color } });
+    };
+    // Small unobtrusive T1/T2 tick labels marking the ASTM E1356 onset/endset
+    // intersection points (where the tangent construction meets each
+    // extrapolated baseline) — mirrors the classic Tb/T1/Tg/T2/Te figure.
+    const addTick = (T, y, label) => {
+      if (T === null || T === undefined || Number.isNaN(T)) return;
+      anns.push({ x: T, y: y || 0, xref: `x${colIdx}`, yref: `y${colIdx}`, text: label, showarrow: false, yshift: 10, font: { size: 8, color: DSC_ZONE_COLORS.tg } });
+    };
+    const addTgTicks = (tgD) => {
+      if (!tgD) return;
+      if (tgD.TgOnset !== null && tgD.Tinftan) addTick(tgD.TgOnset, tgD.HFinftan[0], "T₁");
+      if (tgD.TgEndset !== null && tgD.Tinftan) addTick(tgD.TgEndset, tgD.HFinftan[1], "T₂");
+    };
+    add(analysis.heat1.Tg, analysis.heat1.tgData ? analysis.heat1.tgData.TgY : 0, `Tg₁=${analysis.heat1.Tg ? analysis.heat1.Tg.toFixed(1) : "?"}°C`, DSC_ZONE_COLORS.tg);
+    addTgTicks(analysis.heat1.tgData);
+    add(analysis.heat1.Tm, curveYAt(analysis.heat1.Tm, raw.heat1.T, raw.heat1.HF), `Tm₁=${analysis.heat1.Tm ? analysis.heat1.Tm.toFixed(0) : "?"}°C`, PLOTLY_COLORS[0]);
+    if (analysis.heat1.Tcc !== null && analysis.heat1.Tcc !== undefined) add(analysis.heat1.Tcc, curveYAt(analysis.heat1.Tcc, raw.heat1.T, raw.heat1.HF), `Tcc₁=${analysis.heat1.Tcc.toFixed(0)}°C`, DSC_ZONE_COLORS.cc);
+    add(analysis.cool.Tc, curveYAt(analysis.cool.Tc, raw.cool.T, raw.cool.HF), `Tc=${analysis.cool.Tc ? analysis.cool.Tc.toFixed(0) : "?"}°C`, "#9467bd");
+    add(analysis.cool.Tg, analysis.cool.tgData ? analysis.cool.tgData.TgY : 0, `Tg (cooling)=${analysis.cool.Tg ? analysis.cool.Tg.toFixed(1) : "?"}°C`, DSC_ZONE_COLORS.tg);
+    addTgTicks(analysis.cool.tgData);
+    add(analysis.heat2.Tg, analysis.heat2.tgData ? analysis.heat2.tgData.TgY : 0, `Tg₂=${analysis.heat2.Tg ? analysis.heat2.Tg.toFixed(1) : "?"}°C`, DSC_ZONE_COLORS.tg);
+    addTgTicks(analysis.heat2.tgData);
+    add(analysis.heat2.Tm, curveYAt(analysis.heat2.Tm, raw.heat2.T, raw.heat2.HF), `Tm₂=${analysis.heat2.Tm ? analysis.heat2.Tm.toFixed(0) : "?"}°C`, "#7f7f7f");
+    if (analysis.heat2.Tcc !== null && analysis.heat2.Tcc !== undefined) add(analysis.heat2.Tcc, curveYAt(analysis.heat2.Tcc, raw.heat2.T, raw.heat2.HF), `Tcc₂=${analysis.heat2.Tcc.toFixed(0)}°C`, DSC_ZONE_COLORS.cc);
+    return anns;
+  }
+  const layout = {
+    title: { text: title, font: { size: 13, family: "Inter, Helvetica Neue, Arial, sans-serif" } },
+    font: { family: "Inter, Helvetica Neue, Arial, sans-serif" },
+    xaxis: { title: "Temperature (°C)", domain: [0, 0.46], showgrid: true, gridcolor: "#eeeeee" },
+    yaxis: { title: "Heat flow (W·g⁻¹)", domain: [0, 1] },
+    xaxis2: { title: "Temperature (°C)", domain: [0.54, 1], showgrid: true, gridcolor: "#eeeeee" },
+    yaxis2: { title: "Heat flow (W·g⁻¹)", domain: [0, 1], anchor: "x2" },
+    height: 760, template: "plotly_white", hovermode: "x unified",
+    // Wider bottom margin + legend pushed further down (and a smaller font)
+    // so the ~10 legend entries (3 curves + 4 zones + 3 line-style entries)
+    // have room to wrap without overlapping the x-axis titles/tick labels —
+    // mirrors the Python plot's already-tuned settings (_plotly_layout:
+    // margin.b=110, legend.y=-0.32).
+    legend: { orientation: "h", yanchor: "bottom", y: -0.30, xanchor: "center", x: 0.5, font: { size: 10 }, tracegroupgap: 6 },
+    shapes: [...dscZoneShapes(1, nomBounds), ...dscZoneShapes(2, evlBounds)],
+    margin: { l: 60, r: 40, t: 70, b: 120 },
+    annotations: [
+      { text: "Reference specimen", x: 0.5, xref: "x domain", y: 1.08, yref: "y domain", showarrow: false, font: { size: 12 } },
+      { text: "Evaluated specimen", x: 0.5, xref: "x2 domain", y: 1.08, yref: "y2 domain", showarrow: false, font: { size: 12 } },
+      ...annotationsFor(1, nomAnalysis, nomRaw), ...annotationsFor(2, evlAnalysis, evlRaw),
+    ],
+  };
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+
+function plotDscPreview(divId, nomRaw, evlRaw, title) {
+  const traces = [
+    ...dscCurveTraces(1, nomRaw.heat1, nomRaw.cool, nomRaw.heat2, PLOTLY_COLORS[0], "#9467bd", "#7f7f7f", true),
+    ...dscCurveTraces(2, evlRaw.heat1, evlRaw.cool, evlRaw.heat2, PLOTLY_COLORS[1], "#9467bd", "#7f7f7f", false),
+  ];
+  const layout = {
+    title: { text: title, font: { size: 13, family: "Inter, Helvetica Neue, Arial, sans-serif" } },
+    font: { family: "Inter, Helvetica Neue, Arial, sans-serif" },
+    grid: { rows: 1, columns: 2, pattern: "independent" },
+    xaxis: { title: "Temperature (°C)", domain: [0, 0.46] },
+    yaxis: { title: "Heat flow (W·g⁻¹)" },
+    xaxis2: { title: "Temperature (°C)", domain: [0.54, 1] },
+    yaxis2: { title: "Heat flow (W·g⁻¹)", anchor: "x2" },
+    height: 680, template: "plotly_white", hovermode: "x unified",
+    legend: { orientation: "h", yanchor: "bottom", y: -0.22, xanchor: "center", x: 0.5 },
+    annotations: [
+      { text: "Reference specimen", x: 0.5, xref: "x domain", y: 1.08, yref: "y domain", showarrow: false, font: { size: 12 } },
+      { text: "Evaluated specimen", x: 0.5, xref: "x2 domain", y: 1.08, yref: "y2 domain", showarrow: false, font: { size: 12 } },
+    ],
+  };
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+
+// Plain DSC preview (no zone shading) for the "View DSC Curves" button —
+// mirrors plotDscPreview's two-panel (Reference | Evaluated) layout used
+// for PEEK, so TPU curves can be inspected before setting integration
+// limits.
+function plotDscTpuPreview(divId, refCycles, sampCycles, title) {
+  const traces = [
+    ...dscCurveTraces(1, refCycles.heat1, refCycles.cool, refCycles.heat2, PLOTLY_COLORS[0], "#9467bd", "#7f7f7f", true),
+    ...dscCurveTraces(2, sampCycles.heat1, sampCycles.cool, sampCycles.heat2, PLOTLY_COLORS[1], "#9467bd", "#7f7f7f", false),
+  ];
+  const layout = {
+    title: { text: title, font: { size: 13, family: "Inter, Helvetica Neue, Arial, sans-serif" } },
+    font: { family: "Inter, Helvetica Neue, Arial, sans-serif" },
+    grid: { rows: 1, columns: 2, pattern: "independent" },
+    xaxis: { title: "Temperature (°C)", domain: [0, 0.46] },
+    yaxis: { title: "Heat flow (W·g⁻¹)" },
+    xaxis2: { title: "Temperature (°C)", domain: [0.54, 1] },
+    yaxis2: { title: "Heat flow (W·g⁻¹)", anchor: "x2" },
+    height: 620, template: "plotly_white", hovermode: "x unified",
+    legend: { orientation: "h", yanchor: "bottom", y: -0.22, xanchor: "center", x: 0.5 },
+    annotations: [
+      { text: "Reference specimen", x: 0.5, xref: "x domain", y: 1.08, yref: "y domain", showarrow: false, font: { size: 12 } },
+      { text: "Evaluated specimen", x: 0.5, xref: "x2 domain", y: 1.08, yref: "y2 domain", showarrow: false, font: { size: 12 } },
+    ],
+  };
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+// TPU DSC files carry the same 3-cycle layout as PEEK's (1st heating /
+// cooling / 2nd heating); show all three per specimen — solid / dashed /
+// dotted, matching the PEEK plot's convention — so the different cycles
+// are visibly captured rather than only the 1st heating curve. Reference
+// and evaluated are drawn in SEPARATE panels (like the PEEK DSC plot),
+// each shaded with its own zone boundaries, instead of overlaying both
+// specimens on one shared axis.
+function plotDscTpu(divId, refCycles, sampCycles, refBounds, sampBounds, refAnalysis, sampAnalysis, title) {
+  // Only 3 zone colors now (tg / fusion / cryst) — the Tm search window was
+  // merged into the fusion zone (see tpuBoundsFrom), so there is no longer a
+  // separate "Tm" zone color/shape, mirroring PEEK (which never had one:
+  // its Tm is found inside the same fusion-zone bounds used for ΔH_m).
+  const zoneColors = { tg: PLOTLY_COLORS[2], fusion: PLOTLY_COLORS[3], cryst: PLOTLY_COLORS[5] };
+  const mkZoneLegend = (color, name) => ({ x: [null], y: [null], mode: "markers", marker: { size: 12, symbol: "square", color, opacity: 0.35 }, name, showlegend: true, hoverinfo: "skip" });
+  const cycleTraces = (colIdx, cycles, color, showlegend) => [
+    { x: cycles.heat1.T, y: cycles.heat1.HF, name: "1st heating", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color, width: 1.8 }, showlegend, legendgroup: "h1" },
+    { x: cycles.cool.T, y: cycles.cool.HF, name: "Cooling", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color, width: 1.4, dash: "dash" }, showlegend, legendgroup: "cool" },
+    { x: cycles.heat2.T, y: cycles.heat2.HF, name: "2nd heating", xaxis: `x${colIdx}`, yaxis: `y${colIdx}`, line: { color, width: 1.4, dash: "dot" }, showlegend, legendgroup: "h2" },
+  ];
+  // Baseline (fusion ×2 + crystallization enthalpy) + ASTM E1356 Tg
+  // tangent-construction lines (×3 cycles), drawn from the same analysis
+  // objects the reported values came from — mirrors the PEEK DSC plot,
+  // which draws a fusion baseline for BOTH heating cycles, not just the 1st.
+  const analysisTraces = (colIdx, analysis) => {
+    const t = [];
+    const blH1 = dscBaselineTrace(colIdx, analysis.fusZoneH1);
+    if (blH1) t.push(blH1);
+    const blH2 = dscBaselineTrace(colIdx, analysis.fusZoneH2);
+    if (blH2) t.push(blH2);
+    const crBlTr = dscBaselineTrace(colIdx, analysis.crystZone);
+    if (crBlTr) t.push(crBlTr);
+    t.push(...dscTangentTraces(colIdx, analysis.tgDataH1));
+    t.push(...dscTangentTraces(colIdx, analysis.tgDataCool));
+    t.push(...dscTangentTraces(colIdx, analysis.tgDataH2));
+    return t;
+  };
+  const traces = [
+    ...cycleTraces(1, refCycles, PLOTLY_COLORS[0], true),
+    ...cycleTraces(2, sampCycles, PLOTLY_COLORS[1], true),
+    ...analysisTraces(1, refAnalysis),
+    ...analysisTraces(2, sampAnalysis),
+    mkZoneLegend(zoneColors.tg, "Tg region"),
+    mkZoneLegend(zoneColors.fusion, "Fusion zone (1st and 2nd heating)"),
+    mkZoneLegend(zoneColors.cryst, "Crystallization zone (cooling)"),
+    { x: [null], y: [null], mode: "lines", line: { color: "#444444", width: 1.5, dash: "dot" }, name: "Enthalpy baseline", showlegend: true, hoverinfo: "skip" },
+    { x: [null], y: [null], mode: "lines", line: { color: "#888888", width: 1.5, dash: "dash" }, name: "Tg baseline extrapolation", showlegend: true, hoverinfo: "skip" },
+    { x: [null], y: [null], mode: "lines", line: { color: zoneColors.tg, width: 1.8, dash: "solid" }, name: "Tg inflection tangent (ASTM E1356)", showlegend: true, hoverinfo: "skip" },
+  ];
+  const zoneShapes = (colIdx, bounds) => [
+    { type: "rect", xref: `x${colIdx}`, yref: `y${colIdx} domain`, x0: bounds.tgL, x1: bounds.tgR, y0: 0, y1: 1, fillcolor: zoneColors.tg, opacity: 0.10, line: { width: 0 } },
+    { type: "rect", xref: `x${colIdx}`, yref: `y${colIdx} domain`, x0: bounds.fusL, x1: bounds.fusR, y0: 0, y1: 1, fillcolor: zoneColors.fusion, opacity: 0.10, line: { width: 0 } },
+    { type: "rect", xref: `x${colIdx}`, yref: `y${colIdx} domain`, x0: bounds.crystL, x1: bounds.crystR, y0: 0, y1: 1, fillcolor: zoneColors.cryst, opacity: 0.10, line: { width: 0 } },
+  ];
+  const shapes = [...zoneShapes(1, refBounds), ...zoneShapes(2, sampBounds)];
+
+  // Nearest-sample lookup so the Tm/Tc annotations anchor at the curve's
+  // actual height at that temperature (mirrors plotDscResults' curveYAt).
+  function curveYAt(T, rawT, rawHF) {
+    if (T === null || T === undefined || Number.isNaN(T) || !rawT || !rawT.length) return 0;
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < rawT.length; i++) { const d = Math.abs(rawT[i] - T); if (d < bestD) { bestD = d; best = i; } }
+    return rawHF[best];
+  }
+  function annotationsFor(colIdx, analysis, cycles) {
+    const anns = [];
+    const add = (T, y, text, color, ay) => {
+      if (T === null || T === undefined || Number.isNaN(T)) return;
+      anns.push({ x: T, y: y || 0, xref: `x${colIdx}`, yref: `y${colIdx}`, text, showarrow: true, arrowhead: 2, arrowsize: 0.8, ax: 0, ay, font: { size: 9, color } });
+    };
+    const addTick = (T, y, label) => {
+      if (T === null || T === undefined || Number.isNaN(T)) return;
+      anns.push({ x: T, y: y || 0, xref: `x${colIdx}`, yref: `y${colIdx}`, text: label, showarrow: false, yshift: 10, font: { size: 8, color: zoneColors.tg } });
+    };
+    const addTgTicks = (tgD) => {
+      if (!tgD) return;
+      if (tgD.TgOnset !== null && tgD.Tinftan) addTick(tgD.TgOnset, tgD.HFinftan[0], "T₁");
+      if (tgD.TgEndset !== null && tgD.Tinftan) addTick(tgD.TgEndset, tgD.HFinftan[1], "T₂");
+    };
+    // Three separate Tg annotations (1st heating, cooling, 2nd heating),
+    // matching PEEK's plotDscResults labeling (Tg₁ / Tg (cooling) / Tg₂).
+    // Distinct ay offsets keep them from overlapping since all three tend
+    // to sit at a similar temperature (the same glass transition, read on
+    // different cycles).
+    const tgH1 = analysis.tgDataH1;
+    if (tgH1 && tgH1.Tg !== null && tgH1.Tg !== undefined) {
+      add(tgH1.Tg, tgH1.TgY, `Tg₁=${tgH1.Tg.toFixed(1)}°C`, zoneColors.tg, -16);
+      addTgTicks(tgH1);
+    }
+    const tgCool = analysis.tgDataCool;
+    if (tgCool && tgCool.Tg !== null && tgCool.Tg !== undefined) {
+      add(tgCool.Tg, tgCool.TgY, `Tg (cooling)=${tgCool.Tg.toFixed(1)}°C`, zoneColors.tg, 40);
+      addTgTicks(tgCool);
+    }
+    const tgH2 = analysis.tgDataH2;
+    if (tgH2 && tgH2.Tg !== null && tgH2.Tg !== undefined) {
+      add(tgH2.Tg, tgH2.TgY, `Tg₂=${tgH2.Tg.toFixed(1)}°C`, zoneColors.tg, -56);
+      addTgTicks(tgH2);
+    }
+    // Tm₁/Tm₂ — melting peak on both heating cycles, found inside the same
+    // fusion-zone bounds used for ΔH_m (mirrors PEEK, which reports Tm for
+    // both the 1st and 2nd heating rather than only the 1st).
+    if (analysis.TmH1 !== null && analysis.TmH1 !== undefined && !Number.isNaN(analysis.TmH1)) {
+      add(analysis.TmH1, curveYAt(analysis.TmH1, cycles.heat1.T, cycles.heat1.HF), `Tm₁=${analysis.TmH1.toFixed(0)}°C`, zoneColors.fusion, -36);
+    }
+    if (analysis.TmH2 !== null && analysis.TmH2 !== undefined && !Number.isNaN(analysis.TmH2)) {
+      add(analysis.TmH2, curveYAt(analysis.TmH2, cycles.heat2.T, cycles.heat2.HF), `Tm₂=${analysis.TmH2.toFixed(0)}°C`, zoneColors.fusion, -76);
+    }
+    if (analysis.Tc !== null && analysis.Tc !== undefined && !Number.isNaN(analysis.Tc)) {
+      add(analysis.Tc, curveYAt(analysis.Tc, cycles.cool.T, cycles.cool.HF), `Tc=${analysis.Tc.toFixed(0)}°C`, "#9467bd", +20);
+    }
+    return anns;
+  }
+
+  const layout = {
+    title: { text: title, font: { size: 15, family: "Inter, Helvetica Neue, Arial, sans-serif", color: "#1a2e4a" }, x: 0.04, xanchor: "left" },
+    font: { family: "Inter, Helvetica Neue, Arial, sans-serif", size: 12, color: "#2d3748" },
+    grid: { rows: 1, columns: 2, pattern: "independent" },
+    xaxis: { title: "Temperature (°C)", domain: [0, 0.46] },
+    yaxis: { title: "Heat flow (W/g)" },
+    xaxis2: { title: "Temperature (°C)", domain: [0.54, 1] },
+    yaxis2: { title: "Heat flow (W/g)", anchor: "x2" },
+    height: 700, template: "plotly_white", hovermode: "x unified",
+    // Wider bottom margin + legend pushed further down (and a smaller font)
+    // so the ~9 legend entries (3 curves + Tg/Fusion/Crystallization zones +
+    // 3 line-style entries) have room to wrap onto multiple rows without
+    // overlapping the x-axis titles/tick labels below the plot — mirrors the
+    // already-tuned margin/legend settings used by the Python plot
+    // (_plotly_layout: margin.b=110, legend.y=-0.32).
+    margin: { l: 60, r: 40, t: 60, b: 120 },
+    legend: { orientation: "h", yanchor: "bottom", y: -0.30, xanchor: "center", x: 0.5, font: { size: 10 }, tracegroupgap: 6 },
+    shapes,
+    annotations: [
+      { text: "Reference specimen", x: 0.5, xref: "x domain", y: 1.08, yref: "y domain", showarrow: false, font: { size: 12 } },
+      { text: "Evaluated specimen", x: 0.5, xref: "x2 domain", y: 1.08, yref: "y2 domain", showarrow: false, font: { size: 12 } },
+      ...annotationsFor(1, refAnalysis, refCycles), ...annotationsFor(2, sampAnalysis, sampCycles),
+    ],
+  };
+  Plotly.newPlot(divId, traces, layout, PLOTLY_CONFIG);
+}
+
+/* ============================= NODE EVALUATION ============================= */
+
+function getNum(id) { const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) ? v : 0; }
+function getManual(id) { const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) ? v : 0; }
+
+async function runFtirNode(material) {
+  const refInput = document.getElementById("ftirRefFile");
+  const sampInput = document.getElementById("ftirSampFile");
+  if (!refInput.files[0] || !sampInput.files[0]) {
+    return { decision: "NOT EVALUATED", html: resultBlock(`NODE 1 — FTIR (${material})`, `<p>Both FTIR Excel files must be provided.</p>`) };
+  }
+  const b1u = getNum("band1Upper"), b1l = getNum("band1Lower"), b2u = getNum("band2Upper"), b2l = getNum("band2Lower");
+  const acceptable = getNum("acceptableLimit"), reMin = getNum("reexamMin"), reMax = getNum("reexamMax");
+  try {
+    const [refRaw, sampRaw] = await Promise.all([readExcelFile(refInput), readExcelFile(sampInput)]);
+    const reqMin = Math.min(b1l, b2l), reqMax = Math.max(b1u, b2u);
+    const ref = readFtirRaw(refRaw, reqMin, reqMax);
+    const samp = readFtirRaw(sampRaw, reqMin, reqMax);
+    const diRef = calculateFtirDescriptor(ref.cm1, ref.pctT, b1u, b1l, b2u, b2l);
+    const diSamp = calculateFtirDescriptor(samp.cm1, samp.pctT, b1u, b1l, b2u, b2l);
+    const deltaX1 = calculateFtirVariation(diRef.di, diSamp.di);
+    const decision = classifyResult(Math.abs(deltaX1), acceptable, reMin, reMax);
+    plotFtir("ftirPlot", ref, samp, b1u, b1l, b2u, b2l, `Node 1 — FTIR (${material})`);
+    const html = resultBlock(`NODE 1 — FTIR (${material})`,
+      `<p class="result-line">Band 1: ${b1u}–${b1l} cm⁻¹<br>Band 2: ${b2u}–${b2l} cm⁻¹</p>` +
+      tableHtml("FTIR", [
+        { param: "DI", def: "Degradation index (chemical integrity descriptor)", ref: diRef.di.toFixed(4), evl: diSamp.di.toFixed(4), delta: `${deltaX1 >= 0 ? "+" : ""}${deltaX1.toFixed(2)} %` },
+      ]) +
+      `<p class="result-line">FTIR descriptor: ${Math.abs(deltaX1).toFixed(2)} %</p>` +
+      `<p class="result-line">Classification: ${badgeHtml(decision)}</p>`
+    );
+    return { decision, html };
+  } catch (err) {
+    return { decision: "NOT EVALUATED", html: resultBlock(`NODE 1 — FTIR (${material})`, `<p class="error-text">This node could not be evaluated. Error details: ${err.message}</p>`) };
+  }
+}
+
+async function runTgaNode(material) {
+  const refInput = document.getElementById("tgaRefFile");
+  const sampInput = document.getElementById("tgaSampFile");
+  if (!refInput.files[0] || !sampInput.files[0]) {
+    return { decision: "NOT EVALUATED", html: resultBlock(`NODE 2 — TGA (${material})`, `<p>Both TGA Excel files must be provided.</p>`) };
+  }
+  const acceptable = getNum("acceptableLimit"), reMin = getNum("reexamMin"), reMax = getNum("reexamMax");
+  try {
+    const [refRaw, sampRaw] = await Promise.all([readExcelFile(refInput), readExcelFile(sampInput)]);
+    const refCurve = readTgaRaw(refRaw), sampCurve = readTgaRaw(sampRaw);
+    const refDeriv = computeTgaDerivative(refCurve.T, refCurve.W);
+    const sampDeriv = computeTgaDerivative(sampCurve.T, sampCurve.W);
+    let html, decision;
+    if (material === "PEEK") {
+      const d = PEEK_DEFAULTS;
+      // Auto-detected — no fixed material-specific window (d.tgaFocusMin/Max)
+      // is imposed on the search; see findSingleInterpolatedTmaxAuto.
+      const ref = findSingleInterpolatedTmaxAuto(refCurve.T, refDeriv.dWdTSmooth);
+      const samp = findSingleInterpolatedTmaxAuto(sampCurve.T, sampDeriv.dWdTSmooth);
+      const descriptor = normalizedDistance2d(ref.tmax, ref.derivMin, samp.tmax, samp.derivMin) * 100.0;
+      decision = classifyResult(descriptor, acceptable, reMin, reMax);
+      const deltaTmax = samp.tmax - ref.tmax, deltaRate = samp.derivMin - ref.derivMin;
+      plotTga("tgaPlot",
+        { T: refCurve.T, dWdT: refDeriv.dWdTSmooth, Torig: refCurve.T, Worig: refCurve.W, Tmax: ref.tmax, derivative_min: ref.derivMin },
+        { T: sampCurve.T, dWdT: sampDeriv.dWdTSmooth, Torig: sampCurve.T, Worig: sampCurve.W, Tmax: samp.tmax, derivative_min: samp.derivMin },
+        [["Tmax", "derivative_min"]], `Node 2 — TGA (${material})`);
+      html = resultBlock(`NODE 2 — TGA (${material})`,
+        tableHtml("TGA", [
+          { param: "Tmax", def: "Degradation peak temperature", ref: fmtTemp(ref.tmax), evl: fmtTemp(samp.tmax), delta: `${deltaTmax >= 0 ? "+" : ""}${deltaTmax.toFixed(1)} °C` },
+          { param: "dW/dT at Tmax", def: "Peak weight-loss rate (TGA derivative minimum)", ref: `${ref.derivMin.toFixed(4)} %/°C`, evl: `${samp.derivMin.toFixed(4)} %/°C`, delta: `${deltaRate >= 0 ? "+" : ""}${deltaRate.toFixed(4)} %/°C` },
+        ]) +
+        `<p class="result-line">TGA descriptor: ${descriptor.toFixed(2)} % — combined normalized distance between Tmax and dW/dT at Tmax (reference vs. evaluated)</p>` +
+        `<p class="result-line">Classification: ${badgeHtml(decision)}</p>`
+      );
+    } else {
+      const d = TPU_DEFAULTS;
+      const ref = findTwoDistinctInterpolatedTmax(refCurve.T, refDeriv.dWdTSmooth, d.tgaStage1Min, d.tgaStage2Max);
+      const samp = findTwoDistinctInterpolatedTmax(sampCurve.T, sampDeriv.dWdTSmooth, d.tgaStage1Min, d.tgaStage2Max);
+      const dist1 = normalizedDistance2d(ref.tmax1, ref.derivative1, samp.tmax1, samp.derivative1);
+      const dist2 = normalizedDistance2d(ref.tmax2, ref.derivative2, samp.tmax2, samp.derivative2);
+      const descriptor = ((dist1 + dist2) / 2.0) * 100.0;
+      decision = classifyResult(descriptor, acceptable, reMin, reMax);
+      const dt1 = samp.tmax1 - ref.tmax1, dt2 = samp.tmax2 - ref.tmax2;
+      const dr1 = samp.derivative1 - ref.derivative1, dr2 = samp.derivative2 - ref.derivative2;
+      plotTga("tgaPlot",
+        { T: refCurve.T, dWdT: refDeriv.dWdTSmooth, Torig: refCurve.T, Worig: refCurve.W, Tmax1: ref.tmax1, derivative_1: ref.derivative1, Tmax2: ref.tmax2, derivative_2: ref.derivative2 },
+        { T: sampCurve.T, dWdT: sampDeriv.dWdTSmooth, Torig: sampCurve.T, Worig: sampCurve.W, Tmax1: samp.tmax1, derivative_1: samp.derivative1, Tmax2: samp.tmax2, derivative_2: samp.derivative2 },
+        [["Tmax1", "derivative_1"], ["Tmax2", "derivative_2"]], `Node 2 — TGA (${material})`);
+      html = resultBlock(`NODE 2 — TGA (${material})`,
+        tableHtml("TGA", [
+          { param: "Tmax1", def: "First-stage degradation peak temperature", ref: fmtTemp(ref.tmax1), evl: fmtTemp(samp.tmax1), delta: `${dt1 >= 0 ? "+" : ""}${dt1.toFixed(1)} °C` },
+          { param: "dW/dT at Tmax1", def: "Peak weight-loss rate, first stage", ref: `${ref.derivative1.toFixed(4)} %/°C`, evl: `${samp.derivative1.toFixed(4)} %/°C`, delta: `${dr1 >= 0 ? "+" : ""}${dr1.toFixed(4)} %/°C` },
+          { param: "Tmax2", def: "Second-stage degradation peak temperature", ref: fmtTemp(ref.tmax2), evl: fmtTemp(samp.tmax2), delta: `${dt2 >= 0 ? "+" : ""}${dt2.toFixed(1)} °C` },
+          { param: "dW/dT at Tmax2", def: "Peak weight-loss rate, second stage", ref: `${ref.derivative2.toFixed(4)} %/°C`, evl: `${samp.derivative2.toFixed(4)} %/°C`, delta: `${dr2 >= 0 ? "+" : ""}${dr2.toFixed(4)} %/°C` },
+        ]) +
+        `<p class="result-line">TGA descriptor: ${descriptor.toFixed(2)} % — average of the normalized distances (Tmax, dW/dT) for each stage (reference vs. evaluated)</p>` +
+        `<p class="result-line">Classification: ${badgeHtml(decision)}</p>`
+      );
+    }
+    return { decision, html };
+  } catch (err) {
+    return { decision: "NOT EVALUATED", html: resultBlock(`NODE 2 — TGA (${material})`, `<p class="error-text">This node could not be evaluated. Error details: ${err.message}</p>`) };
+  }
+}
+
+async function loadPeekDscPair() {
+  const refInput = document.getElementById("dscPeekRefFile");
+  const sampInput = document.getElementById("dscPeekSampFile");
+  if (!refInput.files[0] || !sampInput.files[0]) return null;
+  const [refRaw, sampRaw] = await Promise.all([readExcelFile(refInput), readExcelFile(sampInput)]);
+  const refCycles = readDscThreeCyclesRaw(refRaw);
+  const sampCycles = readDscThreeCyclesRaw(sampRaw);
+  const massRef = getNum("peekMassRef"), massSamp = getNum("peekMassSamp");
+  const refNorm = document.getElementById("peekRefNormalized").checked;
+  const sampNorm = document.getElementById("peekSampNormalized").checked;
+  function normCycle(c, mass, normalized) {
+    return { T: c.T, HF: normalizeHeatFlow(c.HF, mass, normalized), time: c.time };
+  }
+  const nomRaw = {
+    heat1: normCycle(refCycles.heat1, massRef, refNorm),
+    cool: normCycle(refCycles.cool, massRef, refNorm),
+    heat2: normCycle(refCycles.heat2, massRef, refNorm),
+  };
+  const evlRaw = {
+    heat1: normCycle(sampCycles.heat1, massSamp, sampNorm),
+    cool: normCycle(sampCycles.cool, massSamp, sampNorm),
+    heat2: normCycle(sampCycles.heat2, massSamp, sampNorm),
+  };
+  return { nomRaw, evlRaw };
+}
+
+function peekBoundsFrom(prefix) {
+  return {
+    fusL: getNum(`peekFus${prefix}L`), fusR: getNum(`peekFus${prefix}R`),
+    coolL: getNum(`peekCool${prefix}L`), coolR: getNum(`peekCool${prefix}R`),
+    ccL: getNum(`peekCc${prefix}L`), ccR: getNum(`peekCc${prefix}R`),
+    tgL: getNum(`peekTg${prefix}L`), tgR: getNum(`peekTg${prefix}R`),
+  };
+}
+// Fusion zone bounds double as the Tm search window — mirrors PEEK, whose
+// "Fusion (1st and 2nd heating)" bounds are the same ones tmArr searches for
+// the melting peak (analyzeDscSpecimenBounds passes fusL/fusR straight into
+// tmArr, with no separate Tm window). TPU previously had a redundant,
+// independently-set "Tm Search Window" input alongside the Fusion Zone
+// input; removed so there is one zone per concept, like PEEK.
+function tpuBoundsFrom(prefix) {
+  return {
+    tgL: getNum(`tpuTg${prefix}L`), tgR: getNum(`tpuTg${prefix}R`),
+    fusL: getNum(`tpuFus${prefix}L`), fusR: getNum(`tpuFus${prefix}R`),
+    crystL: getNum(`tpuCryst${prefix}L`), crystR: getNum(`tpuCryst${prefix}R`),
+  };
+}
+
+async function runDscPeekNode() {
+  try {
+    const pair = await loadPeekDscPair();
+    if (!pair) return { html: resultBlock("NODE 3 — DSC (PEEK)", `<p>DSC files were not provided.</p>`) };
+    const { nomRaw, evlRaw } = pair;
+    const nomB = peekBoundsFrom("Nom"), evlB = peekBoundsFrom("Evl");
+    const nom = analyzeDscSpecimenBounds(nomRaw.heat1, nomRaw.cool, nomRaw.heat2, nomB.fusL, nomB.fusR, nomB.coolL, nomB.coolR, nomB.ccL, nomB.ccR, nomB.tgL, nomB.tgR, PEEK_DEFAULTS.deltaH100);
+    const evl = analyzeDscSpecimenBounds(evlRaw.heat1, evlRaw.cool, evlRaw.heat2, evlB.fusL, evlB.fusR, evlB.coolL, evlB.coolR, evlB.ccL, evlB.ccR, evlB.tgL, evlB.tgR, PEEK_DEFAULTS.deltaH100);
+
+    const tgR1 = manualOr(getManual("peekTgNominalManual"), nom.heat1.Tg);
+    const tgE1 = manualOr(getManual("peekTgNewManual"), evl.heat1.Tg);
+    const dhmR1 = manualOr(getManual("peekDhFusionNominalManual"), nom.heat1.dHfusion);
+    const dhmE1 = manualOr(getManual("peekDhFusionNewManual"), evl.heat1.dHfusion);
+    const dhcRc = manualOr(getManual("peekDhCrystNominalManual"), nom.cool.dHcrystallization);
+    const dhcEc = manualOr(getManual("peekDhCrystNewManual"), evl.cool.dHcrystallization);
+
+    const r1 = nom.heat1, rc = nom.cool, r2 = nom.heat2;
+    const e1 = evl.heat1, ec = evl.cool, e2 = evl.heat2;
+
+    const rows = [
+      { section: true, label: "1st Heating Cycle — ASTM E1356" },
+      { param: "T_g onset", def: "Onset of the glass transition (ASTM E1356 tangent construction)", ref: fmtTemp(r1.TgOnset), evl: fmtTemp(e1.TgOnset), delta: relDiffPct(r1.TgOnset, e1.TgOnset) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step (ASTM E1356)", ref: fmtTemp(tgR1), evl: fmtTemp(tgE1), delta: relDiffPct(tgR1, tgE1) },
+      { param: "T_m peak", def: "Peak melting temperature", ref: fmtTemp(r1.Tm), evl: fmtTemp(e1.Tm), delta: relDiffPct(r1.Tm, e1.Tm) },
+      { param: "ΔH_m", def: "Enthalpy of fusion (linear-baseline integration)", ref: fmtDh(dhmR1), evl: fmtDh(dhmE1), delta: relDiffPct(dhmR1, dhmE1) },
+      { param: "T_cc", def: "Cold-crystallization peak temperature", ref: fmtTemp(r1.Tcc), evl: fmtTemp(e1.Tcc), delta: relDiffPct(r1.Tcc, e1.Tcc) },
+      { param: "ΔH_cc", def: "Cold-crystallization enthalpy", ref: fmtDh(r1.dHcc), evl: fmtDh(e1.dHcc), delta: relDiffPct(r1.dHcc, e1.dHcc) },
+      { param: "X_c", def: "Degree of crystallinity, (ΔH_m − ΔH_cc) / 130 J·g⁻¹ × 100", ref: fmtPct(r1.Xc), evl: fmtPct(e1.Xc), delta: relDiffPct(r1.Xc, e1.Xc) },
+      { section: true, label: "Cooling Cycle" },
+      { param: "T_g onset", def: "Onset of the glass transition on cooling", ref: fmtTemp(rc.TgOnset), evl: fmtTemp(ec.TgOnset), delta: relDiffPct(rc.TgOnset, ec.TgOnset) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step on cooling", ref: fmtTemp(rc.Tg), evl: fmtTemp(ec.Tg), delta: relDiffPct(rc.Tg, ec.Tg) },
+      { param: "T_c peak", def: "Crystallization peak temperature on cooling", ref: fmtTemp(rc.Tc), evl: fmtTemp(ec.Tc), delta: relDiffPct(rc.Tc, ec.Tc) },
+      { param: "ΔH_c", def: "Crystallization enthalpy on cooling", ref: fmtDh(dhcRc), evl: fmtDh(dhcEc), delta: relDiffPct(dhcRc, dhcEc) },
+      { section: true, label: "2nd Heating Cycle" },
+      { param: "T_g onset", def: "Onset of the glass transition (ASTM E1356 tangent construction)", ref: fmtTemp(r2.TgOnset), evl: fmtTemp(e2.TgOnset), delta: relDiffPct(r2.TgOnset, e2.TgOnset) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step (ASTM E1356)", ref: fmtTemp(r2.Tg), evl: fmtTemp(e2.Tg), delta: relDiffPct(r2.Tg, e2.Tg) },
+      { param: "T_m peak", def: "Peak melting temperature", ref: fmtTemp(r2.Tm), evl: fmtTemp(e2.Tm), delta: relDiffPct(r2.Tm, e2.Tm) },
+      { param: "ΔH_m", def: "Enthalpy of fusion (linear-baseline integration)", ref: fmtDh(r2.dHfusion), evl: fmtDh(e2.dHfusion), delta: relDiffPct(r2.dHfusion, e2.dHfusion) },
+      { param: "T_cc", def: "Cold-crystallization peak temperature", ref: fmtTemp(r2.Tcc), evl: fmtTemp(e2.Tcc), delta: relDiffPct(r2.Tcc, e2.Tcc) },
+      { param: "ΔH_cc", def: "Cold-crystallization enthalpy", ref: fmtDh(r2.dHcc), evl: fmtDh(e2.dHcc), delta: relDiffPct(r2.dHcc, e2.dHcc) },
+      { param: "X_c", def: "Degree of crystallinity, (ΔH_m − ΔH_cc) / 130 J·g⁻¹ × 100", ref: fmtPct(r2.Xc), evl: fmtPct(e2.Xc), delta: relDiffPct(r2.Xc, e2.Xc) },
+    ];
+
+    let warnHtml = "";
+    const warnings = [];
+    [[tgR1, PEEK_DEFAULTS.tgMin, PEEK_DEFAULTS.tgMax, "Reference T_g (1st heating)"], [tgE1, PEEK_DEFAULTS.tgMin, PEEK_DEFAULTS.tgMax, "Evaluated T_g (1st heating)"]]
+      .forEach(([v, mn, mx, lbl]) => { if (v !== null && !Number.isNaN(v) && (v < mn || v > mx)) warnings.push(`Warning: ${lbl} (${v.toFixed(1)} °C) is outside the expected window [${mn.toFixed(1)}–${mx.toFixed(1)} °C]`); });
+    if (warnings.length) warnHtml = `<div class="warning-box">${warnings.join("<br>")}</div>`;
+
+    plotDscResults("dscPlot", nomRaw, evlRaw, nom, evl, nomB, evlB, "Node 3 — DSC (PEEK)");
+
+    return { html: resultBlock("NODE 3 — DSC (PEEK)", tableHtml("DSC", rows) + warnHtml) };
+  } catch (err) {
+    return { html: resultBlock("NODE 3 — DSC (PEEK)", `<p class="error-text">This node could not be evaluated. Error details: ${err.message}</p>`) };
+  }
+}
+
+async function runDscTpuNode() {
+  const refInput = document.getElementById("dscTpuRefFile");
+  const sampInput = document.getElementById("dscTpuSampFile");
+  if (!refInput.files[0] || !sampInput.files[0]) {
+    return { html: resultBlock("NODE 3 — DSC (TPU)", `<p>DSC files were not provided.</p>`) };
+  }
+  try {
+    const [refCyclesRaw, sampCyclesRaw] = await Promise.all([readDscTpuCycles(refInput), readDscTpuCycles(sampInput)]);
+    const massRef = getNum("tpuMassRef"), massSamp = getNum("tpuMassSamp");
+    const refNorm = document.getElementById("tpuRefNormalized").checked;
+    const sampNorm = document.getElementById("tpuSampNormalized").checked;
+    function normCycle(c, mass, normalized) { return { T: c.T, HF: normalizeHeatFlow(c.HF, mass, normalized), time: c.time }; }
+    const refCycles = { heat1: normCycle(refCyclesRaw.heat1, massRef, refNorm), cool: normCycle(refCyclesRaw.cool, massRef, refNorm), heat2: normCycle(refCyclesRaw.heat2, massRef, refNorm) };
+    const sampCycles = { heat1: normCycle(sampCyclesRaw.heat1, massSamp, sampNorm), cool: normCycle(sampCyclesRaw.cool, massSamp, sampNorm), heat2: normCycle(sampCyclesRaw.heat2, massSamp, sampNorm) };
+    const refB = tpuBoundsFrom("Ref"), sampB = tpuBoundsFrom("Evl");
+
+    // Tg is computed for all three cycles (1st heating, cooling, 2nd
+    // heating) — mirrors PEEK's analyzeDscSpecimenBounds. DSC practice
+    // commonly reads Tg from the 2nd heating (after the 1st heating has
+    // erased prior processing/thermal history) and from the cooling cycle
+    // as well, not only the 1st heating, so all three are computed here
+    // instead of just one. The same Tg search window (tgL/tgR) is reused
+    // for all three cycles, exactly as PEEK does (see the note inside
+    // tgAnalysisArr on why a shared window is intentional). Cooling/2nd
+    // heating Tg have no manual-override field, matching PEEK, which also
+    // only allows a manual override for the 1st-heating Tg.
+    const tgH1RefData = tgAnalysisArr(refCycles.heat1.T, refCycles.heat1.HF, refB.tgL, refB.tgR);
+    const tgH1SampData = tgAnalysisArr(sampCycles.heat1.T, sampCycles.heat1.HF, sampB.tgL, sampB.tgR);
+    if (!tgH1RefData || tgH1RefData.Tg === null || tgH1RefData.Tg === undefined) {
+      throw new Error("Insufficient DSC data to compute the Tg midpoint (1st heating, reference).");
+    }
+    if (!tgH1SampData || tgH1SampData.Tg === null || tgH1SampData.Tg === undefined) {
+      throw new Error("Insufficient DSC data to compute the Tg midpoint (1st heating, evaluated).");
+    }
+    const tgCoolRefData = tgAnalysisArr(refCycles.cool.T, refCycles.cool.HF, refB.tgL, refB.tgR);
+    const tgCoolSampData = tgAnalysisArr(sampCycles.cool.T, sampCycles.cool.HF, sampB.tgL, sampB.tgR);
+    const tgH2RefData = tgAnalysisArr(refCycles.heat2.T, refCycles.heat2.HF, refB.tgL, refB.tgR);
+    const tgH2SampData = tgAnalysisArr(sampCycles.heat2.T, sampCycles.heat2.HF, sampB.tgL, sampB.tgR);
+
+    const tgRefAuto = tgH1RefData.Tg, tgSampAuto = tgH1SampData.Tg;
+    const tgCoolRefAuto = tgCoolRefData ? tgCoolRefData.Tg : null;
+    const tgCoolSampAuto = tgCoolSampData ? tgCoolSampData.Tg : null;
+    const tgH2RefAuto = tgH2RefData ? tgH2RefData.Tg : null;
+    const tgH2SampAuto = tgH2SampData ? tgH2SampData.Tg : null;
+
+    // Fusion ΔH and Tm are now computed for BOTH heating cycles — mirrors
+    // PEEK's "Fusion (1st and 2nd heating)" bounds, which feed the SAME
+    // fusL/fusR window into both calculate_fusion_deltaH_tpu-equivalent
+    // (heatCycle in PEEK's analyzeDscSpecimenBounds) and the Tm search, for
+    // each cycle. TPU previously only reported ΔH_m/Tm for the 1st heating.
+    const fusionRefH1Auto = calculateFusionDeltaHTpu(refCycles.heat1.T, refCycles.heat1.HF, refB.fusL, refB.fusR, refCycles.heat1.time);
+    const fusionSampH1Auto = calculateFusionDeltaHTpu(sampCycles.heat1.T, sampCycles.heat1.HF, sampB.fusL, sampB.fusR, sampCycles.heat1.time);
+    const fusionRefH2Auto = calculateFusionDeltaHTpu(refCycles.heat2.T, refCycles.heat2.HF, refB.fusL, refB.fusR, refCycles.heat2.time);
+    const fusionSampH2Auto = calculateFusionDeltaHTpu(sampCycles.heat2.T, sampCycles.heat2.HF, sampB.fusL, sampB.fusR, sampCycles.heat2.time);
+    const tmRefH1Auto = calculateTmTpu(refCycles.heat1.T, refCycles.heat1.HF, refB.fusL, refB.fusR);
+    const tmSampH1Auto = calculateTmTpu(sampCycles.heat1.T, sampCycles.heat1.HF, sampB.fusL, sampB.fusR);
+    const tmRefH2Auto = calculateTmTpu(refCycles.heat2.T, refCycles.heat2.HF, refB.fusL, refB.fusR);
+    const tmSampH2Auto = calculateTmTpu(sampCycles.heat2.T, sampCycles.heat2.HF, sampB.fusL, sampB.fusR);
+    const crystRefAuto = calculateCrystallizationTpu(refCycles.cool.T, refCycles.cool.HF, refB.crystL, refB.crystR, refCycles.cool.time);
+    const crystSampAuto = calculateCrystallizationTpu(sampCycles.cool.T, sampCycles.cool.HF, sampB.crystL, sampB.crystR, sampCycles.cool.time);
+
+    const tgRef = manualOr(getManual("tpuTgRefManual"), tgRefAuto);
+    const tgSamp = manualOr(getManual("tpuTgSampManual"), tgSampAuto);
+    // Manual overrides apply only to the 1st-heating ΔH_m/Tm, matching
+    // PEEK (whose manual-override inputs are likewise 1st-heating only —
+    // the 2nd-heating values are always the auto-computed ones).
+    const fusionRefH1 = manualOr(getManual("tpuDhFusionRefManual"), fusionRefH1Auto);
+    const fusionSampH1 = manualOr(getManual("tpuDhFusionSampManual"), fusionSampH1Auto);
+    const fusionRefH2 = fusionRefH2Auto;
+    const fusionSampH2 = fusionSampH2Auto;
+    const tmRefH1 = manualOr(getManual("tpuTmRefManual"), tmRefH1Auto);
+    const tmSampH1 = manualOr(getManual("tpuTmSampManual"), tmSampH1Auto);
+    const tmRefH2 = tmRefH2Auto;
+    const tmSampH2 = tmSampH2Auto;
+    const crystRef = manualOr(getManual("tpuDhCrystRefManual"), crystRefAuto.dHc);
+    const crystSamp = manualOr(getManual("tpuDhCrystSampManual"), crystSampAuto.dHc);
+    const tcRef = crystRefAuto.Tc, tcSamp = crystSampAuto.Tc;
+
+    // Tg onset (ASTM E1356 tangent-intersection) for all three cycles — the
+    // tangent construction already computed this (tgD.TgOnset) but it was
+    // previously discarded; now reported alongside the midpoint, exactly as
+    // PEEK does for each of its three cycles.
+    const tgOnsetRefH1 = tgH1RefData.TgOnset, tgOnsetSampH1 = tgH1SampData.TgOnset;
+    const tgOnsetRefCool = tgCoolRefData ? tgCoolRefData.TgOnset : null;
+    const tgOnsetSampCool = tgCoolSampData ? tgCoolSampData.TgOnset : null;
+    const tgOnsetRefH2 = tgH2RefData ? tgH2RefData.TgOnset : null;
+    const tgOnsetSampH2 = tgH2SampData ? tgH2SampData.TgOnset : null;
+
+    // Sectioned by cycle (1st Heating / Cooling / 2nd Heating), mirroring
+    // PEEK's results table layout.
+    const rows = [
+      { section: true, label: "1st Heating Cycle" },
+      { param: "T_g onset", def: "Onset of the glass transition (ASTM E1356 tangent construction), 1st heating", ref: fmtTemp(tgOnsetRefH1), evl: fmtTemp(tgOnsetSampH1), delta: relDiffPct(tgOnsetRefH1, tgOnsetSampH1) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step, 1st heating", ref: fmtTemp(tgRef), evl: fmtTemp(tgSamp), delta: relDiffPct(tgRef, tgSamp) },
+      { param: "ΔH_m", def: "Enthalpy of fusion (linear-baseline integration), 1st heating", ref: fmtDh(fusionRefH1), evl: fmtDh(fusionSampH1), delta: relDiffPct(fusionRefH1, fusionSampH1) },
+      { param: "T_m", def: "Peak melting temperature, 1st heating", ref: fmtTemp(tmRefH1), evl: fmtTemp(tmSampH1), delta: relDiffPct(tmRefH1, tmSampH1) },
+      { section: true, label: "Cooling Cycle" },
+      { param: "T_g onset", def: "Onset of the glass transition on cooling", ref: fmtTemp(tgOnsetRefCool), evl: fmtTemp(tgOnsetSampCool), delta: relDiffPct(tgOnsetRefCool, tgOnsetSampCool) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step, cooling", ref: fmtTemp(tgCoolRefAuto), evl: fmtTemp(tgCoolSampAuto), delta: relDiffPct(tgCoolRefAuto, tgCoolSampAuto) },
+      { param: "T_c", def: "Crystallization peak temperature, cooling", ref: fmtTemp(tcRef), evl: fmtTemp(tcSamp), delta: relDiffPct(tcRef, tcSamp) },
+      { param: "ΔH_c", def: "Crystallization enthalpy (linear-baseline integration), cooling", ref: fmtDh(crystRef), evl: fmtDh(crystSamp), delta: relDiffPct(crystRef, crystSamp) },
+      { section: true, label: "2nd Heating Cycle" },
+      { param: "T_g onset", def: "Onset of the glass transition (ASTM E1356 tangent construction), 2nd heating", ref: fmtTemp(tgOnsetRefH2), evl: fmtTemp(tgOnsetSampH2), delta: relDiffPct(tgOnsetRefH2, tgOnsetSampH2) },
+      { param: "T_g midpoint", def: "Midpoint of the glass transition step, 2nd heating (thermal history erased)", ref: fmtTemp(tgH2RefAuto), evl: fmtTemp(tgH2SampAuto), delta: relDiffPct(tgH2RefAuto, tgH2SampAuto) },
+      { param: "ΔH_m", def: "Enthalpy of fusion (linear-baseline integration), 2nd heating", ref: fmtDh(fusionRefH2), evl: fmtDh(fusionSampH2), delta: relDiffPct(fusionRefH2, fusionSampH2) },
+      { param: "T_m", def: "Peak melting temperature, 2nd heating", ref: fmtTemp(tmRefH2), evl: fmtTemp(tmSampH2), delta: relDiffPct(tmRefH2, tmSampH2) },
+    ];
+
+    const warnings = [];
+    [
+      [tgRef, refB.tgL, refB.tgR, "Reference Tg (1st heating)"], [tgSamp, sampB.tgL, sampB.tgR, "Evaluated Tg (1st heating)"],
+      [tmRefH1, refB.fusL, refB.fusR, "Reference Tm (1st heating)"], [tmSampH1, sampB.fusL, sampB.fusR, "Evaluated Tm (1st heating)"],
+      [tcRef, refB.crystL, refB.crystR, "Reference Tc"], [tcSamp, sampB.crystL, sampB.crystR, "Evaluated Tc"],
+    ].forEach(([v, mn, mx, lbl]) => { if (v !== null && !Number.isNaN(v) && (v < mn || v > mx)) warnings.push(`Warning: ${lbl} (${v.toFixed(1)} °C) is outside the expected window [${mn.toFixed(1)}–${mx.toFixed(1)} °C]`); });
+    const warnHtml = warnings.length ? `<div class="warning-box">${warnings.join("<br>")}</div>` : "";
+
+    // Re-derive the same tangent-construction (Tg × 3 cycles) and
+    // linear-baseline (fusion ΔH ×2 cycles, crystallization ΔH) objects the
+    // scalar values above came from, purely so the plot can draw them —
+    // mirrors PEEK's plotDscResults, which draws a fusion baseline for both
+    // heating cycles plus all three Tg tangent constructions.
+    const refAnalysis = {
+      tgDataH1: tgH1RefData, tgDataCool: tgCoolRefData, tgDataH2: tgH2RefData,
+      fusZoneH1: enthalpyLinearZone(refCycles.heat1.T, refCycles.heat1.HF, refB.fusL, refB.fusR),
+      fusZoneH2: enthalpyLinearZone(refCycles.heat2.T, refCycles.heat2.HF, refB.fusL, refB.fusR),
+      crystZone: crystRefAuto.zone,
+      TmH1: tmRefH1Auto, TmH2: tmRefH2Auto,
+      Tc: tcRef,
+    };
+    const sampAnalysis = {
+      tgDataH1: tgH1SampData, tgDataCool: tgCoolSampData, tgDataH2: tgH2SampData,
+      fusZoneH1: enthalpyLinearZone(sampCycles.heat1.T, sampCycles.heat1.HF, sampB.fusL, sampB.fusR),
+      fusZoneH2: enthalpyLinearZone(sampCycles.heat2.T, sampCycles.heat2.HF, sampB.fusL, sampB.fusR),
+      crystZone: crystSampAuto.zone,
+      TmH1: tmSampH1Auto, TmH2: tmSampH2Auto,
+      Tc: tcSamp,
+    };
+    plotDscTpu("dscPlot", refCycles, sampCycles, refB, sampB, refAnalysis, sampAnalysis, "Node 3 — DSC (TPU)");
+
+    return { html: resultBlock("NODE 3 — DSC (TPU)", tableHtml("DSC", rows) + warnHtml) };
+  } catch (err) {
+    return { html: resultBlock("NODE 3 — DSC (TPU)", `<p class="error-text">This node could not be evaluated. Error details: ${err.message}</p>`) };
+  }
+}
+
+function buildFinalAssessment(decision1, decision2) {
+  const valid = [decision1, decision2].filter(d => d !== "NOT EVALUATED");
+  let final = "NOT EVALUATED";
+  if (valid.length) {
+    if (valid.includes("NOT ACCEPTABLE")) final = "NOT ACCEPTABLE";
+    else if (valid.includes("RE-EXAMINE")) final = "RE-EXAMINE";
+    else final = "ACCEPTABLE";
+  }
+  return resultBlock("FINAL ASSESSMENT",
+    `<p class="result-line">FTIR: ${badgeHtml(decision1)}</p>` +
+    `<p class="result-line">TGA: ${badgeHtml(decision2)}</p>` +
+    `<p class="result-line">DSC: Informational only</p>` +
+    `<p class="result-line">Final Classification: ${badgeHtml(final)}</p>`
+  );
+}
+
+async function runEvaluation() {
+  const btn = document.getElementById("runEvaluationBtn");
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  const material = currentMaterial();
+  const output = document.getElementById("resultsOutput");
+  output.innerHTML = `<p style="color:var(--text-muted);">Evaluating…</p>`;
+  try {
+    const ftirResult = await runFtirNode(material);
+    const tgaResult = await runTgaNode(material);
+    const dscResult = material === "PEEK" ? await runDscPeekNode() : await runDscTpuNode();
+    const finalHtml = buildFinalAssessment(ftirResult.decision, tgaResult.decision);
+    output.innerHTML = ftirResult.html + tgaResult.html + dscResult.html + finalHtml;
+  } catch (err) {
+    output.innerHTML = `<p class="error-text">Unexpected error: ${err.message}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Run evaluation";
+  }
+}
+
+async function runDscPreview() {
+  const btn = document.getElementById("dscPreviewBtn");
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Loading…";
+  try {
+    const pair = await loadPeekDscPair();
+    if (!pair) { alert("Please provide both PEEK DSC Excel files first."); return; }
+    plotDscPreview("dscPreviewPlot", pair.nomRaw, pair.evlRaw, "Node 3 — DSC (PEEK)");
+  } catch (err) {
+    alert(`Could not generate the preview: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function runDscTpuPreview() {
+  const btn = document.getElementById("dscTpuPreviewBtn");
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Loading…";
+  try {
+    const refInput = document.getElementById("dscTpuRefFile");
+    const sampInput = document.getElementById("dscTpuSampFile");
+    if (!refInput.files[0] || !sampInput.files[0]) { alert("Please provide both TPU DSC Excel files first."); return; }
+    const [refCyclesRaw, sampCyclesRaw] = await Promise.all([readDscTpuCycles(refInput), readDscTpuCycles(sampInput)]);
+    plotDscTpuPreview("dscTpuPreviewPlot", refCyclesRaw, sampCyclesRaw, "Node 3 — DSC (TPU)");
+  } catch (err) {
+    alert(`Could not generate the preview: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  applyMaterialDefaults();
+  document.querySelectorAll('input[name="material"]').forEach(r => r.addEventListener("change", applyMaterialDefaults));
+  document.getElementById("runEvaluationBtn").addEventListener("click", runEvaluation);
+  document.getElementById("dscPreviewBtn").addEventListener("click", runDscPreview);
+  document.getElementById("dscTpuPreviewBtn").addEventListener("click", runDscTpuPreview);
+});
+</script>
+</body>
+</html>
