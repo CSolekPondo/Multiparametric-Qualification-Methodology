@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+message: "If you use this software or results obtained with it, please cite it as below."
+title: "Multiparametric Qualification Methodology"
+type: software
+version: "1.0"
+date-released: 2026-10-20
+repository-code: "https://github.com/CSolekPondo/Multiparametric-Qualification-Methodology"
+license-url: "https://github.com/CSolekPondo/Multiparametric-Qualification-Methodology/blob/main/LICENSE"
+authors:
+  - family-names: Solek
+    given-names: Claudia
+    email: csolek@ind.uned.es
+    affiliation: "Universidad Nacional de Educación a Distancia (UNED)"
+  - family-names: Crespo-Sánchez
+    given-names: Jorge
+    affiliation: "Universidad Nacional de Educación a Distancia (UNED)"
+  - family-names: Fuentes del Toro
+    given-names: Sergio
+    affiliation: "Universidad Carlos III de Madrid (UC3M)"
+  - family-names: Ayllón
+    given-names: Jorge
+    affiliation: "Universidad Nacional de Educación a Distancia (UNED)"
+  - family-names: Frigione
+    given-names: Mariaenrica
+    affiliation: "Università del Salento"
+  - family-names: Camacho
+    given-names: Ana M.
+    affiliation: "Universidad Nacional de Educación a Distancia (UNED)"
+  - family-names: Rodríguez-Hernández
+    given-names: Juan
+    affiliation: "Instituto de Ciencia y Tecnología de Polímeros (ICTP-CSIC)"
+  - family-names: Rodríguez-Prieto
+    given-names: Álvaro
+    affiliation: "Universidad Nacional de Educación a Distancia (UNED)"
+preferred-citation:
+  type: article
+  title: "From Characterization to Qualification: An Integrated Multiparametric Methodology for Additively Manufactured Polymer Components"
+  status: submitted
+  year: 2026
+  authors:
+    - family-names: Solek
+      given-names: Claudia
+    - family-names: Crespo-Sánchez
+      given-names: Jorge
+    - family-names: Fuentes del Toro
+      given-names: Sergio
+    - family-names: Ayllón
+      given-names: Jorge
+    - family-names: Frigione
+      given-names: Mariaenrica
+    - family-names: Camacho
+      given-names: Ana M.
+    - family-names: Rodríguez-Hernández
+      given-names: Juan
+    - family-names: Rodríguez-Prieto
+      given-names: Álvaro
